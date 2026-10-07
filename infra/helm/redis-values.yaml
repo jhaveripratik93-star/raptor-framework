@@ -1,0 +1,38 @@
+# Redis (Bitnami) values for the Raptor deployment-gate infra
+# Namespace: robot-poc  |  StorageClass: network-block
+#
+# Purpose in the gate: provides the "Redis latency" metric source and acts as
+# the caching layer Raptor uses for feature serving.
+#
+# This is a standalone (no replication) deployment — adequate for the gate's
+# metric-source role. Switch architecture to "replication" later if you need HA.
+
+architecture: standalone
+
+auth:
+  enabled: true
+  # Set a real password at install time with:
+  #   --set auth.password=<your-password>
+  # Leaving this blank makes the chart auto-generate one into a Secret.
+  password: ""
+
+master:
+  persistence:
+    enabled: true
+    storageClass: network-block
+    size: 8Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# No replicas in standalone mode.
+replica:
+  replicaCount: 0
+
+# Expose Redis INFO metrics so Prometheus / the gate can read latency stats.
+metrics:
+  enabled: true

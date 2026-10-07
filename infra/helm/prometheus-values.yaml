@@ -1,0 +1,112 @@
+# kube-prometheus-stack values for the Raptor deployment-gate infra
+# Namespace: robot-poc  |  StorageClass: network-block
+#
+# Purpose in the gate: primary source for CPU, memory, HTTP error rate metrics.
+# Bundles Prometheus + Grafana + kube-state-metrics + node-exporter.
+#
+# NOTE: kube-prometheus-stack installs CRDs (Prometheus, ServiceMonitor, etc.).
+# Your RBAC check confirmed you can create CRDs, so this will succeed.
+
+# --- Prometheus server ---
+prometheus:
+  prometheusSpec:
+    # Lowered from 15d after the PVC filled to ~18GiB/20Gi (90%), which made
+    # post-replay compaction OOM at the old 2Gi limit (see resources below).
+    # Revisit once the PVC is grown -- 7d is a stopgap, not a long-term value.
+    retention: 2d
+    retentionSize: 15GB
+    # The TSDB WAL replay on this volume takes ~15s and can grow with data.
+    # The default startup probe kills the container mid-replay (503 on /-/ready),
+    # which triggers a crashloop where every restart replays the WAL again.
+    # Give it up to 10 minutes (60 * 10s) to become ready before the kubelet
+    # declares failure.
+    startupProbe:
+      failureThreshold: 60
+      periodSeconds: 10
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: network-block
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 20Gi
+    # Raised from 2Gi after confirmed OOMKilled: the container was killed by
+    # the kernel every time right after "write block started" (compaction
+    # kicking off immediately post-WAL-replay). 4m+ WAL replay plus
+    # compaction on a near-full 20Gi volume needs more headroom than 2Gi.
+    resources:
+      requests:
+        cpu: 250m
+        memory: 1Gi
+      limits:
+        cpu: "1"
+        memory: 4Gi
+    # This Prometheus exists only to feed the deployment gate for canaries in
+    # robot-poc. Scope discovery to this namespace so it does NOT adopt every
+    # ServiceMonitor cluster-wide (your cluster already runs another Prometheus
+    # in the 'monitoring' namespace). This keeps the workload small and avoids
+    # overlap with the existing monitoring stack.
+    serviceMonitorNamespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: robot-poc
+    podMonitorNamespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: robot-poc
+    # Within robot-poc, pick up all ServiceMonitors/PodMonitors regardless of
+    # helm-applied release labels.
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+
+# --- Grafana ---
+grafana:
+  enabled: true
+  # Set a real admin password at install:
+  #   --set grafana.adminPassword=<your-password>
+  adminPassword: ""
+  persistence:
+    enabled: true
+    storageClassName: network-block
+    size: 5Gi
+
+# --- Alertmanager: not needed for the gate; the gate makes the decision ---
+alertmanager:
+  enabled: false
+
+# --- node-exporter: DISABLED ---
+# This cluster already runs a node-exporter (via the existing 'monitoring'
+# stack) bound to host port 9100 on every node. A second DaemonSet cannot
+# schedule: it clashes on hostPort 9100 and is rejected by NodeAffinity on the
+# other nodes (FailedScheduling). The gate needs POD/container CPU + memory
+# (from kube-state-metrics + kubelet cAdvisor), not node-level metrics, so
+# node-exporter is unnecessary here.
+prometheus-node-exporter:
+  enabled: false
+
+# --- kube-state-metrics: KEEP ---
+# Provides the pod/deployment/container CPU + memory + restart-count series the
+# gate actually scores for the robot-poc canary. This is cluster-scoped read
+# only and does not use hostPorts, so it schedules cleanly.
+kube-state-metrics:
+  enabled: true
+
+# --- Node-level scrape jobs: DISABLED ---
+# These scrape the kubelet/node directly and overlap with the existing cluster
+# monitoring. Turning them off avoids duplicate scraping and permission issues
+# on a shared cluster. The gate does not depend on them.
+nodeExporter:
+  enabled: false
+kubelet:
+  enabled: true          # keep — provides cAdvisor pod/container metrics
+kubeApiServer:
+  enabled: false
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeProxy:
+  enabled: false
+kubeEtcd:
+  enabled: false
+coreDns:
+  enabled: false

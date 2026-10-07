@@ -1,0 +1,29 @@
+# InfluxDB 2.x (official influxdata chart) values for the Raptor deployment-gate infra
+# Namespace: robot-poc  |  StorageClass: network-block
+#
+# Purpose in the gate: source for p99 latency and availability metrics.
+
+persistence:
+  enabled: true
+  storageClass: network-block
+  size: 16Gi
+
+# Initial setup — creates org, bucket, and admin token on first boot.
+# Override the secrets at install time; do not commit real values.
+adminUser:
+  organization: "raptor-gate"
+  bucket: "deployment-metrics"
+  user: "admin"
+  # Set at install:
+  #   --set adminUser.password=<pw> --set adminUser.token=<token>
+  password: ""
+  token: ""
+  retention_policy: "30d"
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: "1"
+    memory: 2Gi
