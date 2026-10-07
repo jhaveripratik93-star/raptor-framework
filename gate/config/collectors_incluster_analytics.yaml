@@ -1,0 +1,68 @@
+# Raptor Deployment Gate — in-cluster production collector configuration.
+#
+# TARGET WORKLOAD: eric-cenx-analytics (robot-poc).
+#
+# See collectors_incluster.yaml for the full explanation of why this uses
+# in-cluster Service DNS + in_cluster: true instead of localhost / a
+# kubeconfig file.
+#
+# ⚠ UNVERIFIED: http_probe.base_url below.
+#   eric-cenx-analytics exposes three ports: 8080/TCP, 1235/TCP, 9013/TCP.
+#   A probe to 8080 returned "connection refused" (curl exit 7) when last
+#   tested, so 8080 is likely NOT the right port for this service (unlike
+#   eric-cenx-rest-api, where 8080 does work). Before relying on this file,
+#   confirm which port actually answers HTTP from inside the cluster:
+#
+#     kubectl exec -n robot-poc <robot-pod> -c robot -- \
+#       curl -s -o /dev/null -w 'HTTP_CODE=%{http_code}\n' --max-time 5 \
+#       http://eric-cenx-analytics.robot-poc.svc.cluster.local:<port>/
+#
+#   Try 8080, 1235, and 9013. Any real HTTP code (even 404) counts as a
+#   success — only a connection failure (code 000 / curl exit 7) is wrong.
+#   Update http_probe.base_url below once you know the right port.
+#
+# ⚠ UNVERIFIED: the Prometheus job label.
+#   cpu_usage / memory_usage below assume eric-cenx-analytics is scraped
+#   under job="eric-cenx-analytics" via the same JMX-style metrics as
+#   eric-cenx-rest-api. Confirm with:
+#
+#     kubectl exec -n robot-poc <robot-pod> -c robot -- curl -s \
+#       'http://kube-prom-kube-prometheus-prometheus.robot-poc.svc.cluster.local:9090/api/v1/query?query=up%7Bjob%3D%22eric-cenx-analytics%22%7D'
+#
+#   If the result array is empty, find the real job name under
+#   Prometheus's Status > Targets page and update the queries below.
+
+target:
+  namespace: robot-poc
+  workload: eric-cenx-analytics
+  pod_label_selector: "app=eric-cenx-analytics"
+
+window: "5m"
+
+prometheus:
+  base_url: "http://kube-prom-kube-prometheus-prometheus.robot-poc.svc.cluster.local:9090"
+  timeout_seconds: 10
+  queries:
+    cpu_usage: >-
+      100 * avg(java_lang_operatingsystem_processcpuload{job="eric-cenx-analytics"})
+    memory_usage: >-
+      100 * sum(java_lang_memory_heapmemoryusage_used{job="eric-cenx-analytics"}) / clamp_min(sum(java_lang_memory_heapmemoryusage_max{job="eric-cenx-analytics"}), 1)
+
+kubernetes:
+  namespace: robot-poc
+  pod_label_selector: "app=eric-cenx-analytics"
+  in_cluster: true
+
+redis:
+  host: "redis-master.robot-poc.svc.cluster.local"
+  port: 6379
+  password_env: "REDIS_PASSWORD"
+  timeout_seconds: 5
+  latency_samples: 5
+
+http_probe:
+  # TODO: confirm the right port (see warning above) before trusting this.
+  base_url: "http://eric-cenx-analytics.robot-poc.svc.cluster.local:8080"
+  path: "/"
+  probe_count: 10
+  timeout_seconds: 5

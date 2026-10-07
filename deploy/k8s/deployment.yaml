@@ -1,0 +1,65 @@
+# Raptor Deployment Gate — model-serving Deployment
+# Namespace: robot-poc
+#
+# This is the framework document's "Next stage" deliverable:
+# the feature store + model served as a low-latency API on Kubernetes.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: raptor-gate
+  namespace: robot-poc
+  labels:
+    app: raptor-gate
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: raptor-gate
+  template:
+    metadata:
+      labels:
+        app: raptor-gate
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+      containers:
+        - name: raptor-gate
+          # Replace with your registry/image:tag once pushed.
+          image: raptor-gate:1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            # Point the feature-store cache at the Phase-1 Redis in robot-poc.
+            - name: REDIS_HOST
+              value: redis-master.robot-poc.svc.cluster.local
+            - name: REDIS_PORT
+              value: "6379"
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis
+                  key: redis-password
+            - name: GATE_MODEL_PATH
+              value: /app/model/model.joblib
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20

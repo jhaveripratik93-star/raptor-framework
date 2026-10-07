@@ -1,0 +1,24 @@
+# Raptor Deployment Gate — SLA thresholds (production environment)
+#
+# These mirror the defaults baked into gate/metrics.py. The engine loads this
+# file when present so thresholds can be tuned per environment without code
+# changes (per the framework document, section 5).
+#
+# direction:
+#   max -> value must be <= threshold (lower is better)
+#   min -> value must be >= threshold (higher is better)
+
+gate:
+  threshold: 70          # health score >= this => PROMOTE, else ROLLBACK
+  sla_breach_penalty: 20 # points deducted per SLA breach
+
+metrics:
+  cpu_usage:        { source: Prometheus,     unit: "%",  threshold: 80.0,  direction: max }
+  memory_usage:     { source: Prometheus,     unit: "%",  threshold: 75.0,  direction: max }
+  pod_restarts:     { source: Kubernetes API, unit: "",   threshold: 3.0,   direction: max }
+  http_error_rate:  { source: Prometheus,     unit: "%",  threshold: 1.0,   direction: max }
+  p99_latency:      { source: InfluxDB,       unit: ms,   threshold: 200.0, direction: max }
+  availability:     { source: InfluxDB,       unit: "%",  threshold: 99.5,  direction: min }
+  redis_latency:    { source: Redis INFO,     unit: ms,   threshold: 10.0,  direction: max }
+  endpoint_latency: { source: Network probe,  unit: ms,   threshold: 200.0, direction: max }
+  packet_loss:      { source: Network probe,  unit: "%",  threshold: 1.0,   direction: max }

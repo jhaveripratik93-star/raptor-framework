@@ -1,0 +1,2 @@
+component,cpu_usage,memory_usage,pod_restarts,http_error_rate,p99_latency,availability,redis_latency,endpoint_latency,packet_loss
+v2-degraded,78,82,4,2.8,380,97.5,18,410,1.8

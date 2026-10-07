@@ -1,0 +1,2 @@
+component,cpu_usage,memory_usage,pod_restarts,http_error_rate,p99_latency,availability,redis_latency,endpoint_latency,packet_loss
+v2,46,53,0,0.2,90,99.8,3,88,0.15

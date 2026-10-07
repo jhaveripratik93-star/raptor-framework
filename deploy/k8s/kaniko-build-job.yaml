@@ -1,0 +1,46 @@
+# Kaniko Job — builds the raptor-gate image from the context staged on
+# raptor-build-ctx (see kaniko-build-pvc.yaml / kaniko-staging-pod.yaml) and
+# pushes it straight to armdocker.rnd.ericsson.se. No Docker daemon, no
+# privileged containers — Kaniko builds unprivileged entirely in userspace.
+#
+# Auth: reuses the existing `myregistrykey` dockerconfigjson Secret (already
+# in robot-poc, confirmed push rights to armdocker.rnd.ericsson.se) remapped
+# to the config.json path Kaniko expects, instead of duplicating credentials.
+#
+# IMPORTANT: set the correct push path below before applying —
+# armdocker.rnd.ericsson.se/<your-project-path>/raptor-gate:1.0
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: raptor-gate-kaniko-build
+  namespace: robot-poc
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: kaniko
+          image: gcr.io/kaniko-project/executor:v1.23.2
+          args:
+            - "--context=dir:///workspace"
+            - "--dockerfile=/workspace/Dockerfile"
+            - "--destination=armdocker.rnd.ericsson.se/proj-cenx/raptor-gate:1.0"
+            - "--verbosity=info"
+          volumeMounts:
+            - name: ctx
+              mountPath: /workspace
+              readOnly: true
+            - name: docker-config
+              mountPath: /kaniko/.docker
+              readOnly: true
+      volumes:
+        - name: ctx
+          persistentVolumeClaim:
+            claimName: raptor-build-ctx
+        - name: docker-config
+          secret:
+            secretName: myregistrykey
+            items:
+              - key: .dockerconfigjson
+                path: config.json

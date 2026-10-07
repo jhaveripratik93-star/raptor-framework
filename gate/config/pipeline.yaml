@@ -1,0 +1,27 @@
+# Raptor Deployment Gate — pipeline integration config (OPTIONAL).
+#
+# Selects which CI/CD tool the gate notifies after scoring. The gate's exit code
+# (0=PROMOTE, 1=ROLLBACK) is always the primary signal; this push notification
+# is additive and fully optional.
+#
+# Secrets (tokens) are NEVER stored here — only the names of the environment
+# variables that hold them. Leave tool: noop to disable notification entirely.
+
+# tool: noop | gitlab | jenkins | webhook
+tool: noop
+
+gitlab:
+  # Full project API URL, e.g. https://gitlab.example.com/api/v4/projects/<id>
+  project_url: ""
+  ref: main
+  token_env: GITLAB_TRIGGER_TOKEN     # export this with your trigger token
+
+jenkins:
+  base_url: ""                        # e.g. https://jenkins.example.com
+  job_name: ""                        # the job to trigger
+  user_env: JENKINS_USER              # export JENKINS_USER=<user>
+  token_env: JENKINS_API_TOKEN        # export JENKINS_API_TOKEN=<token>
+
+webhook:
+  url: ""                             # or leave blank and set GATE_WEBHOOK_URL
+  url_env: GATE_WEBHOOK_URL

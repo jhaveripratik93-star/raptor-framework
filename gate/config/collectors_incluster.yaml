@@ -1,0 +1,67 @@
+# Raptor Deployment Gate — in-cluster production collector configuration.
+#
+# TARGET WORKLOAD: eric-cenx-rest-api (a real HTTP API service in robot-poc).
+#
+# This is the IN-CLUSTER variant of gate/config/collectors.yaml — use this one
+# when the gate itself runs as a pod/process INSIDE the robot-poc namespace
+# (e.g. inside the `robot` pod via scripts/deploy_to_robot_pod.ps1, or inside
+# the raptor-gate Deployment once that's built/pushed).
+#
+# The difference from collectors.yaml: every endpoint uses in-cluster Service
+# DNS (<service>.<namespace>.svc.cluster.local) instead of localhost, because
+# from inside a pod "localhost" means that pod's own network namespace, not
+# your laptop and not any port-forward you may have open. The Kubernetes
+# collector also uses in_cluster: true so it authenticates with the pod's own
+# mounted service account token instead of looking for a ~/.kube/config file
+# that does not exist inside the pod.
+#
+# If you are instead running the gate from your own machine with
+# `kubectl port-forward` tunnels open (see scripts/run_production.sh), use
+# gate/config/collectors.yaml instead — that one is the localhost variant.
+#
+# METRIC SOURCING (adapted to what this cluster actually exposes):
+#   cpu_usage, memory_usage           <- Prometheus (JMX exporter, job=eric-cenx-rest-api)
+#   pod_restarts                      <- Kubernetes API (in-cluster service account token)
+#   redis_latency                     <- Redis (direct PING timing)
+#   endpoint_latency, p99_latency,    <- HTTP prober (active black-box probing;
+#   http_error_rate, availability,       InfluxDB is empty for this service, so
+#   packet_loss                          these are measured first-hand instead)
+
+target:
+  namespace: robot-poc
+  workload: eric-cenx-rest-api
+  pod_label_selector: "app=eric-cenx-rest-api"
+
+window: "5m"
+
+prometheus:
+  base_url: "http://kube-prom-kube-prometheus-prometheus.robot-poc.svc.cluster.local:9090"
+  timeout_seconds: 10
+  queries:
+    # CPU: JVM process CPU load, reported as a 0..1 fraction -> * 100 for %.
+    cpu_usage: >-
+      100 * avg(java_lang_operatingsystem_processcpuload{job="eric-cenx-rest-api"})
+    # Memory: JVM heap used as a % of max heap.
+    memory_usage: >-
+      100 * sum(java_lang_memory_heapmemoryusage_used{job="eric-cenx-rest-api"}) / clamp_min(sum(java_lang_memory_heapmemoryusage_max{job="eric-cenx-rest-api"}), 1)
+
+kubernetes:
+  namespace: robot-poc
+  pod_label_selector: "app=eric-cenx-rest-api"
+  in_cluster: true
+
+redis:
+  host: "redis-master.robot-poc.svc.cluster.local"
+  port: 6379
+  password_env: "REDIS_PASSWORD"
+  timeout_seconds: 5
+  latency_samples: 5
+
+http_probe:
+  # Confirmed working: eric-cenx-rest-api answers on 8080 (returns HTTP 404 on
+  # "/", which still counts as a successful probe — the http_probe collector
+  # only treats transport-level connection failures as fatal, not 4xx/5xx).
+  base_url: "http://eric-cenx-rest-api.robot-poc.svc.cluster.local:8080"
+  path: "/"
+  probe_count: 10
+  timeout_seconds: 5

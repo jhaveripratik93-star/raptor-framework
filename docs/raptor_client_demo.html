@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Raptor Deployment Gate — Client Demonstration</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --panel: #f6f8fb;
+    --panel-light: #eef2f8;
+    --border: #d7dee8;
+    --text: #1a2233;
+    --muted: #51607a;
+    --accent: #1d5fd6;
+    --green: #1a9a56;
+    --green-bg: #eafaf1;
+    --red: #d33045;
+    --red-bg: #fdeeef;
+    --amber: #b4700a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+  .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 48px 24px 96px;
+  }
+  header.hero {
+    text-align: center;
+    padding: 56px 24px 48px;
+    border-bottom: 2px solid var(--border);
+    margin-bottom: 48px;
+  }
+  header.hero .eyebrow {
+    color: var(--accent);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    margin-bottom: 12px;
+  }
+  header.hero h1 {
+    font-size: 2.4rem;
+    margin: 0 0 16px;
+    line-height: 1.2;
+    font-weight: 800;
+    color: var(--text);
+  }
+  header.hero p.lead {
+    color: var(--muted);
+    font-size: 1.15rem;
+    max-width: 680px;
+    margin: 0 auto;
+  }
+  .badge-row {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 28px;
+    flex-wrap: wrap;
+  }
+  .badge {
+    background: var(--panel-light);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 6px 16px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  section { margin-bottom: 56px; }
+  h2 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    border-left: 4px solid var(--accent);
+    padding-left: 14px;
+    margin-bottom: 20px;
+    color: var(--text);
+  }
+  h3 { font-size: 1.15rem; margin-top: 28px; font-weight: 700; color: var(--text); }
+  p { color: var(--text); }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 28px;
+    box-shadow: 0 1px 3px rgba(20,30,50,0.06);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 0.95rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  th {
+    color: var(--muted);
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  td { color: var(--text); }
+  tr:last-child td { border-bottom: none; }
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-top: 16px;
+  }
+  @media (max-width: 720px) { .metrics-grid { grid-template-columns: 1fr; } }
+  .metric-card {
+    background: var(--panel-light);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .metric-card .name { font-weight: 700; font-size: 0.95rem; color: var(--text); }
+  .metric-card .src { color: var(--muted); font-size: 0.8rem; margin-top: 2px; }
+  .metric-card .sla { color: var(--accent); font-size: 0.85rem; margin-top: 8px; font-weight: 700; }
+
+  .verdict-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-top: 20px;
+  }
+  @media (max-width: 760px) { .verdict-grid { grid-template-columns: 1fr; } }
+  .verdict-card {
+    border-radius: 14px;
+    padding: 24px;
+    border: 2px solid var(--border);
+  }
+  .verdict-card.promote { background: var(--green-bg); border-color: var(--green); }
+  .verdict-card.rollback { background: var(--red-bg); border-color: var(--red); }
+  .verdict-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.3rem;
+    font-weight: 800;
+    margin-bottom: 4px;
+  }
+  .verdict-card.promote .verdict-title { color: var(--green); }
+  .verdict-card.rollback .verdict-title { color: var(--red); }
+  .verdict-sub { color: var(--muted); font-size: 0.9rem; margin-bottom: 16px; font-weight: 600; }
+  .score-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(20,30,50,0.1);
+    font-size: 0.95rem;
+    color: var(--text);
+  }
+  .score-row:last-of-type { border-bottom: none; }
+  .score-row .val { font-weight: 800; }
+  .violations {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(20,30,50,0.1);
+  }
+  .violations .vtitle {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .violations ul { margin: 0; padding-left: 18px; font-size: 0.88rem; color: var(--red); font-weight: 600; }
+  .violations li { margin-bottom: 4px; }
+  .exit-code {
+    display: inline-block;
+    margin-top: 16px;
+    font-family: "SF Mono", Consolas, Menlo, monospace;
+    background: rgba(20,30,50,0.07);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .compare-table th:first-child, .compare-table td:first-child { color: var(--red); }
+  .compare-table th:last-child, .compare-table td:last-child { color: var(--green); }
+
+  .flow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 24px;
+    flex-wrap: wrap;
+  }
+  .flow-step {
+    flex: 1;
+    min-width: 140px;
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+    font-size: 0.88rem;
+    color: var(--text);
+    font-weight: 600;
+    box-shadow: 0 1px 2px rgba(20,30,50,0.05);
+  }
+  .flow-step .num {
+    display: inline-flex;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 0.8rem;
+    margin-bottom: 8px;
+  }
+  .flow-arrow { color: var(--accent); font-size: 1.3rem; font-weight: 800; }
+
+  .callout {
+    border-left: 4px solid var(--amber);
+    background: #fff6e8;
+    border-radius: 0 10px 10px 0;
+    padding: 14px 18px;
+    margin: 20px 0;
+    font-size: 0.95rem;
+    color: var(--text);
+  }
+  .callout strong { color: var(--amber); }
+
+  /* ---------------------------------------------------- flowchart ---- */
+  .fc {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+  .fc-node {
+    border: 2px solid var(--border);
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 12px 20px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-align: center;
+    color: var(--text);
+    box-shadow: 0 1px 2px rgba(20,30,50,0.06);
+    max-width: 420px;
+  }
+  .fc-node.start { border-radius: 999px; border-color: var(--accent); color: var(--accent); }
+  .fc-node.decision { border-color: var(--amber); background: #fff6e8; border-radius: 10px; }
+  .fc-node.promote { border-color: var(--green); background: var(--green-bg); color: var(--green); font-size: 1.05rem; }
+  .fc-node.rollback { border-color: var(--red); background: var(--red-bg); color: var(--red); font-size: 1.05rem; }
+  .fc-node.failclosed { border-color: var(--amber); background: #fff6e8; color: var(--amber); }
+  .fc-sub { font-weight: 400; font-size: 0.78rem; color: var(--muted); margin-top: 3px; }
+  .fc-arrow {
+    color: var(--muted);
+    font-size: 1.1rem;
+    line-height: 1;
+    padding: 4px 0;
+  }
+  .fc-arrow .label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .fc-arrow .label.yes { color: var(--green); }
+  .fc-arrow .label.no { color: var(--red); }
+  .fc-collect {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    width: 100%;
+    max-width: 760px;
+    margin: 6px 0;
+  }
+  @media (max-width: 760px) { .fc-collect { grid-template-columns: 1fr 1fr; } }
+  .fc-collect .fc-node { max-width: none; font-size: 0.82rem; }
+  .fc-branch {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    width: 100%;
+    max-width: 640px;
+    align-items: start;
+    margin: 6px 0;
+  }
+  @media (max-width: 640px) { .fc-branch { grid-template-columns: 1fr; } }
+  .fc-branch-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+  .fc-outcomes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    width: 100%;
+    max-width: 640px;
+    margin-top: 6px;
+  }
+  @media (max-width: 640px) { .fc-outcomes { grid-template-columns: 1fr; } }
+  .fc-outcome-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.85rem;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+    font-weight: 600;
+  }
+  code {
+    background: var(--panel-light);
+    border: 1px solid var(--border);
+    color: var(--accent);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    font-weight: 700;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div class="eyebrow">Live on Kubernetes</div>
+    <h1>Raptor Deployment Gate</h1>
+    <p class="lead">An automated, <strong>ML-driven</strong> canary deployment gate that decides —
+      in seconds, from real metrics — whether a new deployment is safe to <strong>promote</strong>
+      or should be <strong>rolled back</strong> automatically.</p>
+    <div class="badge-row">
+      <span class="badge">Isolation Forest anomaly detection</span>
+      <span class="badge">9-metric SLA engine</span>
+      <span class="badge">Cross-deployment pattern detection</span>
+      <span class="badge">Live Prometheus / Redis / Kubernetes API</span>
+      <span class="badge">CI/CD exit-code contract</span>
+    </div>
+  </header>
+
+  <section>
+    <h2>What this is</h2>
+    <p>Instead of a human watching dashboards and judging whether a new version
+      looks healthy enough to roll out fully, the <strong>Raptor Gate</strong> makes that
+      decision <strong>automatically</strong> — combining three independent signals into one
+      clear verdict.</p>
+    <div class="panel">
+      <div class="flow">
+        <div class="flow-step"><div class="num">1</div>Collect live metrics from Prometheus, Redis, Kubernetes API, and an active HTTP probe</div>
+        <div class="flow-arrow">&rarr;</div>
+        <div class="flow-step"><div class="num">2</div>Score with an Isolation Forest trained on the service's own healthy history</div>
+        <div class="flow-arrow">&rarr;</div>
+        <div class="flow-step"><div class="num">3</div>Evaluate 9 explicit SLA thresholds</div>
+        <div class="flow-arrow">&rarr;</div>
+        <div class="flow-step"><div class="num">4</div>Check: has this same metric broken its SLA on a recent prior deployment too?</div>
+        <div class="flow-arrow">&rarr;</div>
+        <div class="flow-step"><div class="num">5</div>Final verdict: <strong>PROMOTE</strong> or <strong>ROLLBACK</strong></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>How it works, end to end</h2>
+    <p>Every deployment triggers the same fixed pipeline, start to finish:</p>
+    <div class="panel">
+      <div class="fc">
+        <div class="fc-node start">CI/CD pipeline deploys a new canary version</div>
+        <div class="fc-arrow">&darr;</div>
+        <div class="fc-node">Raptor Gate triggered</div>
+        <div class="fc-arrow">&darr;</div>
+
+        <div class="fc-collect">
+          <div class="fc-node">Prometheus<div class="fc-sub">CPU, Memory</div></div>
+          <div class="fc-node">Kubernetes API<div class="fc-sub">Pod restarts</div></div>
+          <div class="fc-node">Redis<div class="fc-sub">Redis latency</div></div>
+          <div class="fc-node">Live HTTP probe<div class="fc-sub">Latency, p99, errors,<br/>availability, packet loss</div></div>
+        </div>
+
+        <div class="fc-arrow">&darr;</div>
+        <div class="fc-node decision">All 9 metrics collected successfully?</div>
+
+        <div class="fc-branch">
+          <div class="fc-branch-col">
+            <div class="fc-arrow"><span class="label no">no</span><br/>&darr;</div>
+            <div class="fc-node failclosed">FAIL CLOSED &mdash; never guess</div>
+          </div>
+          <div class="fc-branch-col">
+            <div class="fc-arrow"><span class="label yes">yes</span><br/>&darr;</div>
+            <div class="fc-node">Isolation Forest anomaly scoring<br/>+ SLA rule engine (9 thresholds)</div>
+          </div>
+        </div>
+
+        <div class="fc-branch">
+          <div class="fc-branch-col"></div>
+          <div class="fc-branch-col">
+            <div class="fc-arrow">&darr;</div>
+            <div class="fc-node">Combined into Health Score (0&ndash;100)</div>
+            <div class="fc-arrow">&darr;</div>
+            <div class="fc-node decision">Health score &ge; 70?</div>
+          </div>
+        </div>
+
+        <div class="fc-branch">
+          <div class="fc-branch-col">
+            <div class="fc-arrow"><span class="label no">no</span><br/>&darr;</div>
+            <div class="fc-node rollback">ROLLBACK &mdash; exit code 1</div>
+          </div>
+          <div class="fc-branch-col">
+            <div class="fc-arrow"><span class="label yes">yes</span><br/>&darr;</div>
+            <div class="fc-node decision">Did this SAME metric also breach on a recent prior deployment?</div>
+          </div>
+        </div>
+
+        <div class="fc-outcomes">
+          <div class="fc-outcome-col">
+            <div class="fc-arrow"><span class="label yes">yes, 2nd+ time</span><br/>&darr;</div>
+            <div class="fc-node failclosed">FORCED ROLLBACK<div class="fc-sub">persistent breach pattern</div></div>
+          </div>
+          <div class="fc-outcome-col">
+            <div class="fc-arrow"><span class="label no">no</span><br/>&darr;</div>
+            <div class="fc-node promote">PROMOTE &mdash; exit code 0</div>
+          </div>
+        </div>
+
+        <div class="fc-arrow">&darr;</div>
+        <div class="fc-node">Optional: notify pipeline (GitLab / Jenkins / Webhook)</div>
+        <div class="fc-arrow">&darr;</div>
+        <div class="fc-node">Pipeline automatically reverts <strong>or</strong> advances the canary to full production</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Where it's running right now</h2>
+    <p>This isn't a slide-ware prototype. The gate is <strong>deployed and running
+      live</strong> inside the client's own Kubernetes cluster. Every number in this
+      document was captured from that live run — <strong>not simulated</strong>.</p>
+  </section>
+
+  <section>
+    <h2>The 9 metrics it monitors</h2>
+    <div class="metrics-grid">
+      <div class="metric-card"><div class="name">CPU usage</div><div class="src">Prometheus</div><div class="sla">&le; 80%</div></div>
+      <div class="metric-card"><div class="name">Memory usage</div><div class="src">Prometheus</div><div class="sla">&le; 75%</div></div>
+      <div class="metric-card"><div class="name">Pod restarts</div><div class="src">Kubernetes API</div><div class="sla">&le; 3</div></div>
+      <div class="metric-card"><div class="name">HTTP error rate</div><div class="src">Live probe</div><div class="sla">&le; 1%</div></div>
+      <div class="metric-card"><div class="name">p99 latency</div><div class="src">Live probe</div><div class="sla">&le; 200ms</div></div>
+      <div class="metric-card"><div class="name">Availability</div><div class="src">Live probe</div><div class="sla">&ge; 99.5%</div></div>
+      <div class="metric-card"><div class="name">Redis latency</div><div class="src">Redis</div><div class="sla">&le; 10ms</div></div>
+      <div class="metric-card"><div class="name">Endpoint latency</div><div class="src">Live probe</div><div class="sla">&le; 200ms</div></div>
+      <div class="metric-card"><div class="name">Packet loss</div><div class="src">Live probe</div><div class="sla">&le; 1%</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>The decision in action</h2>
+    <p>Three <strong>real</strong> verdicts produced by the gate, scored by the same engine
+      against the same thresholds.</p>
+
+    <div class="verdict-grid">
+      <div class="verdict-card promote">
+        <div class="verdict-title">&#10003; PROMOTE</div>
+        <div class="verdict-sub">Case A &mdash; healthy deployment</div>
+        <div class="score-row"><span>Health score</span><span class="val">78.1 / 100</span></div>
+        <div class="score-row"><span>Anomaly score</span><span class="val">78.1 / 100</span></div>
+        <div class="score-row"><span>SLA breaches</span><span class="val">0</span></div>
+        <div class="score-row"><span>Gate threshold</span><span class="val">&ge; 70</span></div>
+        <div class="exit-code">pipeline exit code: 0 &rarr; auto-advance to production</div>
+      </div>
+
+      <div class="verdict-card rollback">
+        <div class="verdict-title">&#10007; ROLLBACK</div>
+        <div class="verdict-sub">Case B &mdash; degraded deployment</div>
+        <div class="score-row"><span>Health score</span><span class="val">0.0 / 100</span></div>
+        <div class="score-row"><span>Anomaly score</span><span class="val">72.2 / 100</span></div>
+        <div class="score-row"><span>SLA breaches</span><span class="val">8 of 9</span></div>
+        <div class="violations">
+          <div class="vtitle">Violations detected</div>
+          <ul>
+            <li>memory_usage = 82.0% (limit 75.0%)</li>
+            <li>pod_restarts = 4 (limit 3)</li>
+            <li>http_error_rate = 2.8% (limit 1.0%)</li>
+            <li>p99_latency = 380ms (limit 200ms)</li>
+            <li>availability = 97.5% (minimum 99.5%)</li>
+            <li>redis_latency = 18ms (limit 10ms)</li>
+            <li>endpoint_latency = 410ms (limit 200ms)</li>
+            <li>packet_loss = 1.8% (limit 1.0%)</li>
+          </ul>
+        </div>
+        <div class="exit-code">pipeline exit code: 1 &rarr; auto-revert to last known-good version</div>
+      </div>
+    </div>
+
+    <h3>Case C &mdash; the same minor issue, twice in a row &rarr; forced ROLLBACK</h3>
+    <p>Not every bad deployment looks dramatically broken. Sometimes a canary is
+      <strong>almost</strong> fine &mdash; one metric just over its limit, everything else
+      healthy &mdash; and on its own, that single deployment would reasonably PROMOTE.
+      The problem is when that <strong>exact same metric</strong> keeps doing it, release
+      after release. The gate catches that pattern specifically.</p>
+
+    <div class="verdict-grid">
+      <div class="verdict-card promote">
+        <div class="verdict-title">&#10003; PROMOTE</div>
+        <div class="verdict-sub">1st deployment &mdash; one minor breach, otherwise healthy</div>
+        <div class="score-row"><span>Health score</span><span class="val">70.0 / 100</span></div>
+        <div class="score-row"><span>Breach</span><span class="val">redis_latency = 11ms (limit 10ms)</span></div>
+        <div class="score-row"><span>Persistent breaches</span><span class="val">none yet</span></div>
+      </div>
+      <div class="verdict-card rollback">
+        <div class="verdict-title">&#10007; ROLLBACK</div>
+        <div class="verdict-sub">2nd deployment &mdash; same issue recurs</div>
+        <div class="score-row"><span>Health score</span><span class="val">70.0 / 100 (unchanged)</span></div>
+        <div class="score-row"><span>Breach</span><span class="val">redis_latency = 11ms, again</span></div>
+        <div class="violations">
+          <div class="vtitle">Forced override</div>
+          <ul>
+            <li>redis_latency breached its SLA in 2 of the last 2 deployments</li>
+          </ul>
+        </div>
+        <div class="exit-code">forced_rollback: true</div>
+      </div>
+    </div>
+    <p style="margin-top:16px;"><strong>Same health score both times &mdash; 70.0.</strong> The
+      only difference is that this is the second time this metric has broken its SLA for
+      this service. The gate treats that pattern as proof of a real, standing problem and
+      overrides the score, rather than letting the same issue quietly repeat indefinitely.</p>
+  </section>
+
+  <section>
+    <h2>Why this matters &mdash; the business case</h2>
+    <table class="compare-table">
+      <tr><th>Without an automated gate</th><th>With the Raptor Gate</th></tr>
+      <tr>
+        <td>A human watches dashboards after every deploy and decides whether it's safe</td>
+        <td>The decision is <strong>automatic, consistent</strong>, and takes <strong>seconds</strong></td>
+      </tr>
+      <tr>
+        <td>Judgment calls vary by who's on call and how tired they are</td>
+        <td>Every deployment is scored against <strong>the exact same rules and model</strong>, every time</td>
+      </tr>
+      <tr>
+        <td>Subtle cross-metric issues are easy to miss individually</td>
+        <td>The <strong>Isolation Forest</strong> is trained specifically to catch combinations no single threshold would flag</td>
+      </tr>
+      <tr>
+        <td>Bad deployments can sit in production for minutes or hours before anyone notices</td>
+        <td>Rollback happens <strong>automatically, immediately</strong>, as part of the deployment pipeline itself</td>
+      </tr>
+      <tr>
+        <td>Rollout decisions aren't repeatable or auditable</td>
+        <td>Every decision ships with <strong>full supporting evidence</strong> for audit and post-incident review</td>
+      </tr>
+      <tr>
+        <td>A minor, recurring issue can keep slipping through if each individual deployment looks "good enough" on its own</td>
+        <td>The gate <strong>remembers recent deployments per service</strong> and forces a rollback the moment the same metric breaks its SLA repeatedly &mdash; a pattern no single snapshot would catch</td>
+      </tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>Built-in safety model</h2>
+    <div class="panel">
+      <h3 style="margin-top:0;">Fails closed, never open</h3>
+      <p>If the gate cannot reliably collect metrics, it does <strong>not guess</strong> &mdash;
+        it automatically returns <strong>ROLLBACK</strong>. Uncertainty itself is treated as a
+        reason not to promote.</p>
+      <h3>A recurring issue overrides a passing score</h3>
+      <p>If the same metric breaks its SLA across multiple recent deployments, the gate
+        <strong>forces a rollback outright</strong> &mdash; see Case C above. One
+        acceptable-looking deployment is never allowed to mask a pattern of the same
+        problem repeating.</p>
+      <h3>Notification failures never change the decision</h3>
+      <p>Optional integrations with GitLab, Jenkins, or a webhook are
+        additive. If a notification fails to send, the <strong>deployment decision
+        itself is completely unaffected</strong>.</p>
+      <h3>Secrets are never stored in config</h3>
+      <p>Credentials are read from the <strong>environment only</strong> &mdash; nothing
+        sensitive is ever committed or hard-coded.</p>
+    </div>
+    <div class="callout">
+      <strong>Design principle:</strong> the gate would rather <strong>block a good
+      deployment</strong> on a false alarm than ever <strong>let a bad one through</strong> on missing
+      data.
+    </div>
+  </section>
+
+  <section>
+    <h2>Fits into existing CI/CD &mdash; no rip-and-replace</h2>
+    <p>The gate is a single command with a single, simple contract:
+      <code>exit code 0</code> to promote, <code>exit code 1</code> to roll
+      back. Any pipeline &mdash; GitLab CI, Jenkins, or a custom script
+      &mdash; can branch on that exit code directly, with <strong>no proprietary
+      platform required</strong> and <strong>no changes</strong> to how deployments are already
+      triggered. It can also actively notify a pipeline via webhook, GitLab
+      trigger, or Jenkins job parameters the moment a decision is made.</p>
+  </section>
+
+  <footer>
+    Raptor Deployment Gate &mdash; automated canary deployment gate for Kubernetes.
+  </footer>
+
+</div>
+</body>
+</html>

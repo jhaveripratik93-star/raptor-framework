@@ -1,0 +1,64 @@
+// Raptor Deployment Gate — Jenkins pipeline integration example.
+//
+// The Gate stage runs the gate and captures its exit code. The pipeline then
+// branches: exit 0 -> Promote stage, non-zero -> Rollback stage.
+//
+// Uses the gate's exit code directly (the primary contract). The --notify push
+// integration is only needed when the gate runs OUTSIDE Jenkins and must
+// trigger a Jenkins job.
+
+pipeline {
+  agent any
+
+  environment {
+    GATE_BASELINE = 'data/v1_baseline.csv'
+    // Collector secrets pulled from Jenkins credentials:
+    INFLUX_TOKEN   = credentials('influx-token')
+    REDIS_PASSWORD = credentials('redis-password')
+  }
+
+  stages {
+    stage('Setup') {
+      steps {
+        sh 'python -m venv .venv'
+        sh '. .venv/bin/activate && pip install --no-cache-dir -r requirements.txt'
+      }
+    }
+
+    stage('Gate') {
+      steps {
+        script {
+          // Do not fail the build on non-zero; capture the code instead.
+          env.GATE_EXIT = sh(
+            returnStatus: true,
+            script: '''
+              . .venv/bin/activate
+              python -m gate.cli --mode production \
+                --baseline "$GATE_BASELINE" \
+                --collectors gate/config/collectors.yaml \
+                --json | tee verdict.json
+            '''
+          ).toString()
+          echo "Gate exit code: ${env.GATE_EXIT}"
+        }
+        archiveArtifacts artifacts: 'verdict.json', allowEmptyArchive: true
+      }
+    }
+
+    stage('Promote') {
+      when { expression { env.GATE_EXIT == '0' } }
+      steps {
+        echo 'Gate PROMOTE — advancing canary to full production'
+        // sh 'kubectl -n robot-poc rollout status deploy/app'
+      }
+    }
+
+    stage('Rollback') {
+      when { expression { env.GATE_EXIT != '0' } }
+      steps {
+        echo 'Gate ROLLBACK — reverting canary to v1'
+        // sh 'kubectl -n robot-poc rollout undo deploy/app'
+      }
+    }
+  }
+}

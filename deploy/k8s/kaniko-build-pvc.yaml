@@ -1,0 +1,15 @@
+# PVC holding the Docker build context (repo subset) for the Kaniko build.
+# RWX so the staging pod (kubectl cp target) and the Kaniko Job can both
+# mount it. Deleted after the build — see deploy/k8s/README-kaniko.md.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: raptor-build-ctx
+  namespace: robot-poc
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: network-file
+  resources:
+    requests:
+      storage: 1Gi

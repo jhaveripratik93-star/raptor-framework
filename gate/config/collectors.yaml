@@ -1,0 +1,66 @@
+# Raptor Deployment Gate — production-mode collector configuration.
+#
+# TARGET WORKLOAD: eric-cenx-rest-api (a real HTTP API service in robot-poc).
+#
+# METRIC SOURCING (adapted to what this cluster actually exposes):
+#   cpu_usage, memory_usage           <- Prometheus (kubelet/cAdvisor)
+#   pod_restarts                      <- Kubernetes API
+#   redis_latency                     <- Redis (direct PING timing)
+#   endpoint_latency, p99_latency,    <- HTTP prober (active black-box probing
+#   http_error_rate, availability,       of the service, since it exposes no
+#   packet_loss                          app metrics and InfluxDB is empty)
+#
+# InfluxDB and the old TCP network_probe are intentionally not used here — the
+# service has no latency/availability data in InfluxDB, so those metrics are
+# measured first-hand by the HTTP prober instead.
+#
+# Reach the services from the VDI via port-forward, or in-cluster via *.svc DNS.
+# scripts/run_production.sh opens the port-forwards for you:
+#   kubectl port-forward -n robot-poc svc/kube-prom-kube-prometheus-prometheus 9090:9090
+#   kubectl port-forward -n robot-poc svc/redis-master 6379:6379
+#   kubectl port-forward -n robot-poc svc/eric-cenx-rest-api 8080:8080
+
+target:
+  namespace: robot-poc
+  workload: eric-cenx-rest-api
+  pod_label_selector: "app=eric-cenx-rest-api"   # confirmed via --show-labels
+
+window: "5m"
+
+prometheus:
+  # In-cluster: http://kube-prom-kube-prometheus-prometheus.robot-poc.svc.cluster.local:9090
+  base_url: "http://localhost:9090"
+  timeout_seconds: 10
+  queries:
+    # This service is scraped by a JMX exporter (job=eric-cenx-rest-api), NOT by
+    # cAdvisor — so container_* metrics don't exist for it. We use the real JVM
+    # metrics it actually exposes instead. Both are single-series gauges, so no
+    # rate() or vector-matching join is needed (that caused the earlier 400).
+    #
+    # CPU: JVM process CPU load, reported as a 0..1 fraction -> * 100 for %.
+    cpu_usage: >-
+      100 * avg(java_lang_operatingsystem_processcpuload{job="eric-cenx-rest-api"})
+    # Memory: JVM heap used as a % of max heap.
+    memory_usage: >-
+      100 * sum(java_lang_memory_heapmemoryusage_used{job="eric-cenx-rest-api"}) / clamp_min(sum(java_lang_memory_heapmemoryusage_max{job="eric-cenx-rest-api"}), 1)
+
+kubernetes:
+  namespace: robot-poc
+  pod_label_selector: "app=eric-cenx-rest-api"
+  in_cluster: false
+
+redis:
+  host: "localhost"                   # in-cluster: redis-master.robot-poc.svc.cluster.local
+  port: 6379
+  password_env: "REDIS_PASSWORD"
+  timeout_seconds: 5
+  latency_samples: 5
+
+http_probe:
+  # Probe the target service and measure what its callers experience.
+  # Port-forward:  kubectl port-forward -n robot-poc svc/eric-cenx-rest-api 8080:8080
+  # In-cluster, use: http://eric-cenx-rest-api.robot-poc.svc.cluster.local:8080
+  base_url: "http://localhost:8080"
+  path: "/"                           # cheap endpoint that returns a response
+  probe_count: 10
+  timeout_seconds: 5
