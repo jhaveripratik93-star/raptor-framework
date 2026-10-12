@@ -71,6 +71,61 @@ python -m gate.cli --mode production --baseline data/v1_baseline_live.csv \
   --collectors gate/config/collectors.yaml
 ```
 
+## `discover_collectors.py` — draft a collectors.yaml instead of hand-typing it
+
+Lists Deployments in a namespace and, for a chosen one, resolves its Services
+(ClusterIP/ports) and tries to confirm Prometheus/HTTP endpoints live, then
+writes a **draft** `collectors.yaml` for review — rather than hand-typing
+`target.workload`, `pod_label_selector`, `redis.host`, and
+`http_probe.base_url` the way the bundled configs currently are.
+
+```bash
+# Step 1: see what Deployments exist in the namespace
+python scripts/discover_collectors.py --namespace robot-poc
+
+# Step 2: draft a config for one of them
+python scripts/discover_collectors.py --namespace robot-poc \
+  --workload eric-cenx-rest-api \
+  --prometheus http://localhost:9090 \
+  --out gate/config/collectors_discovered_eric-cenx-rest-api.yaml
+```
+
+**What it fills in automatically** (mechanical, reading structured K8s
+objects — no guessing): the pod label selector, which Services belong to the
+workload, their ClusterIP/ports, and which port actually answers HTTP.
+
+**What it deliberately does NOT guess:** which Prometheus metric name means
+"cpu_usage" or "memory_usage" for an arbitrary service — that depends on
+what the service actually exposes (cAdvisor, a JMX exporter, its own
+`/metrics`, or nothing), and guessing wrong means the gate silently scores
+the wrong metric with no error anywhere. It tries the one PromQL pattern
+already proven twice in this repo (the JMX exporter shape) and only writes
+it in if a live query actually returns a value; otherwise it lists candidate
+series names as a hint and leaves the query as an explicit `TODO` for a
+human to fill in.
+
+The output is always a new file (never overwrites an existing one) and is
+marked `DRAFT` with `⚠ UNVERIFIED` on anything that wasn't confirmed live —
+review those sections before pointing `gate.cli --mode production` at it.
+
+## `gate/config/collectors_template.yaml` — hand-fillable alternative
+
+Use this instead of `discover_collectors.py` when you don't have live
+cluster/Prometheus access yet (e.g. RBAC not granted, drafting a config
+before the service is even deployed) or just want a documented starting
+point to fill in by hand rather than running discovery.
+
+```bash
+cp gate/config/collectors_template.yaml \
+   gate/config/collectors_incluster_<your-service-name>.yaml
+```
+
+Every field is a `<PLACEHOLDER>`, with an in-file checklist (numbered steps,
+each with the exact `kubectl`/`curl` command to confirm it) and the same
+`⚠ MUST CONFIRM` banner style as `collectors_incluster_analytics.yaml`'s
+unverified sections. Fill in each placeholder, work through the checklist,
+and remove the warning comments once confirmed.
+
 ## Before you run — point the collectors at your real workload
 
 `gate/config/collectors.yaml` is templated for a canary named
