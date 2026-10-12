@@ -1,0 +1,121 @@
+# ============================================================================
+# DRAFT TEMPLATE — collectors.yaml for a NEW microservice
+# ============================================================================
+#
+# Copy this file to gate/config/collectors_incluster_<service-name>.yaml and
+# fill in every <PLACEHOLDER> below. Every section marked "⚠ MUST CONFIRM"
+# needs to be verified against the live cluster before you trust it — do not
+# just guess and ship; a wrong value here means the gate silently scores the
+# WRONG metric with no error anywhere, which is worse than an empty config.
+#
+# This is a hand-fillable alternative to scripts/discover_collectors.py.
+# Use discover_collectors.py when you have live cluster + Prometheus access
+# and want fields pre-filled and confirmed automatically. Use THIS template
+# when you don't have that access yet, want a documented starting point, or
+# are drafting the config for a service you haven't connected to yet.
+#
+# Reference examples already filled in and working in this repo:
+#   gate/config/collectors_incluster_rest-api.yaml     (eric-cenx-rest-api)
+#   gate/config/collectors_incluster_analytics.yaml    (eric-cenx-analytics)
+#
+# ----------------------------------------------------------------------------
+# CHECKLIST — do these in order
+# ----------------------------------------------------------------------------
+#   [ ] 1. target: namespace, workload, pod_label_selector
+#          -> kubectl get deployments -n <namespace>
+#          -> kubectl get deployment <workload> -n <namespace> -o jsonpath='{.spec.selector.matchLabels}'
+#   [ ] 2. prometheus: base_url + confirm the job label actually exists
+#          -> kubectl exec -n <namespace> <any-pod-with-curl> -- curl -s \
+#               'http://<prometheus-host>:9090/api/v1/query?query=up%7Bjob%3D%22<workload>%22%7D'
+#          -> if the result array is empty, the job name is wrong — check
+#             Prometheus's Status > Targets page for the real job label
+#   [ ] 3. prometheus.queries: confirm cpu_usage / memory_usage return a value
+#          -> this repo's two working examples use a JMX exporter pattern
+#             (java_lang_operatingsystem_processcpuload / heapmemoryusage).
+#             Your service may expose different metric names entirely
+#             (cAdvisor container_cpu_usage_seconds_total, a custom
+#             /metrics endpoint, etc.) — do NOT copy the JMX queries below
+#             without confirming they return real data for THIS workload.
+#   [ ] 4. kubernetes.pod_label_selector: same selector as target (step 1)
+#   [ ] 5. redis: confirm this is actually the Redis instance the gate
+#          should treat as "the shared dependency" (usually the same one
+#          every other collectors_*.yaml in this repo already points at —
+#          see docs: Redis is cluster-shared infra, not per-service)
+#   [ ] 6. http_probe: confirm the port with a REAL request, not a guess
+#          -> kubectl exec -n <namespace> <any-pod-with-curl> -- \
+#               curl -s -o /dev/null -w 'HTTP_CODE=%{http_code}\n' --max-time 5 \
+#               http://<service-dns-name>:<port>/
+#          -> any real HTTP code (even 404/500) = success. Only a
+#             connection failure (code 000) means the port is wrong — try
+#             the other ports the Service exposes.
+#   [ ] 7. Once every ⚠ MUST CONFIRM below is resolved, remove this banner
+#          and the per-section warnings, and move the file out of "draft"
+#          naming if you have a convention for that.
+#
+# ============================================================================
+
+target:
+  namespace: <NAMESPACE>                      # e.g. robot-poc
+  workload: <WORKLOAD_NAME>                   # e.g. eric-cenx-my-service — must match a real Deployment name
+  pod_label_selector: "<KEY>=<VALUE>"         # ⚠ MUST CONFIRM — copy from `kubectl get deployment <name> -o jsonpath='{.spec.selector.matchLabels}'`
+                                               # multiple labels: "app=my-service,tier=backend"
+
+window: "5m"                                  # matches the 5-minute aggregation window every other feature in gate/features/definitions.py uses — leave as-is unless you have a specific reason to change it
+
+# ----------------------------------------------------------------------------
+prometheus:
+  # ⚠ MUST CONFIRM — in-cluster Service DNS, NOT localhost, if the gate runs
+  # as a pod (e.g. inside the `robot` pod). Use localhost:9090 only if
+  # you're port-forwarding from your own machine.
+  base_url: "http://<prometheus-service-name>.<NAMESPACE>.svc.cluster.local:9090"
+  timeout_seconds: 10
+  queries:
+    # ⚠ MUST CONFIRM — these two example queries assume a JMX exporter
+    # exposing JVM process CPU load and heap usage (the pattern used by
+    # eric-cenx-rest-api / eric-cenx-analytics in this repo). Your service
+    # may need completely different queries. Confirm with a live query
+    # BEFORE trusting these — an unconfirmed query either returns nothing
+    # (collector fails -> gate fails closed to ROLLBACK, safe but useless)
+    # or silently matches the WRONG series (dangerous — looks like it
+    # works but scores the wrong thing).
+    cpu_usage: >-
+      100 * avg(java_lang_operatingsystem_processcpuload{job="<WORKLOAD_NAME>"})
+    memory_usage: >-
+      100 * sum(java_lang_memory_heapmemoryusage_used{job="<WORKLOAD_NAME>"}) / clamp_min(sum(java_lang_memory_heapmemoryusage_max{job="<WORKLOAD_NAME>"}), 1)
+
+    # Alternative pattern if this service IS scraped via cAdvisor instead
+    # of a JMX exporter (common for non-JVM workloads) — uncomment and
+    # confirm instead of the JMX queries above:
+    # cpu_usage: >-
+    #   100 * sum(rate(container_cpu_usage_seconds_total{namespace="<NAMESPACE>",pod=~"<WORKLOAD_NAME>-.*"}[5m]))
+    # memory_usage: >-
+    #   100 * sum(container_memory_working_set_bytes{namespace="<NAMESPACE>",pod=~"<WORKLOAD_NAME>-.*"}) / clamp_min(sum(container_spec_memory_limit_bytes{namespace="<NAMESPACE>",pod=~"<WORKLOAD_NAME>-.*"}), 1)
+
+# ----------------------------------------------------------------------------
+kubernetes:
+  namespace: <NAMESPACE>
+  pod_label_selector: "<KEY>=<VALUE>"         # same value as target.pod_label_selector above
+  in_cluster: true                            # true if the gate runs AS a pod in-cluster (e.g. inside `robot`); false if running from your own machine with a kubeconfig
+
+# ----------------------------------------------------------------------------
+redis:
+  # Usually the SAME shared Redis every other collectors_*.yaml in this
+  # namespace already points at — this is cluster-shared infra, not
+  # something scoped per-microservice. Only change this if your cluster
+  # genuinely runs a separate, dedicated Redis for this service.
+  host: "<redis-service-name>.<NAMESPACE>.svc.cluster.local"
+  port: 6379
+  password_env: "REDIS_PASSWORD"
+  timeout_seconds: 5
+  latency_samples: 5
+
+# ----------------------------------------------------------------------------
+http_probe:
+  # ⚠ MUST CONFIRM — do not guess the port. A Service commonly exposes
+  # several ports (app port, metrics port, admin port); only one of them
+  # answers real application HTTP traffic. Confirm with a live curl from
+  # inside the cluster (see checklist step 6 above) before trusting this.
+  base_url: "http://<service-name>.<NAMESPACE>.svc.cluster.local:<PORT>"
+  path: "/"                                   # cheap endpoint that returns ANY response — 404 is fine, only a connection failure is a problem
+  probe_count: 10
+  timeout_seconds: 5

@@ -340,6 +340,95 @@
     font-size: 0.9em;
     font-weight: 700;
   }
+
+  /* ============================================================ ANIMATED PIPELINE */
+  .afc-wrap { background:var(--panel); border:1px solid var(--border); border-radius:16px; padding:28px 28px 22px; margin-top:20px; box-shadow:0 1px 3px rgba(20,30,50,.06); }
+  .afc-controls { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:22px; }
+  .afc-sbtn { padding:7px 15px; border-radius:8px; border:1.5px solid var(--border); background:var(--bg); color:var(--muted); font-size:.82rem; font-weight:700; cursor:pointer; font-family:inherit; transition:all .2s; }
+  .afc-sbtn:hover  { border-color:var(--accent); color:var(--accent); }
+  .afc-sbtn.s-active { border-color:var(--accent); background:rgba(29,95,214,.07); color:var(--accent); }
+  .afc-rbtn { margin-left:auto; padding:7px 15px; border-radius:8px; border:1.5px solid var(--border); background:transparent; color:var(--muted); font-size:.82rem; font-weight:700; cursor:pointer; font-family:inherit; transition:all .2s; }
+  .afc-rbtn:hover { border-color:var(--accent); color:var(--accent); }
+
+  /* pipeline bar */
+  .afc-pbar { display:flex; align-items:center; margin-bottom:26px; overflow-x:auto; padding-bottom:4px; }
+  .afc-pbn { flex-shrink:0; text-align:center; padding:10px 12px; min-width:80px; background:var(--bg); border:1.5px solid var(--border); border-radius:10px; font-size:.7rem; font-weight:700; color:var(--muted); transition:all .4s ease; line-height:1.4; box-shadow:0 1px 2px rgba(20,30,50,.04); }
+  .afc-pbn i { display:block; font-size:1.3rem; font-style:normal; margin-bottom:4px; }
+  .afc-parr { flex-shrink:0; width:24px; height:2px; background:var(--border); position:relative; transition:background .4s ease; }
+  .afc-parr::after { content:''; position:absolute; right:-6px; top:-4px; border-left:7px solid var(--border); border-top:5px solid transparent; border-bottom:5px solid transparent; transition:border-left-color .4s ease; }
+  .afc-pbn.pb-active  { border-color:var(--accent); background:rgba(29,95,214,.06); color:var(--accent); animation:pbn-p 1.2s ease infinite; }
+  .afc-pbn.pb-done    { border-color:rgba(29,95,214,.3); background:rgba(29,95,214,.04); color:var(--accent); }
+  .afc-pbn.pb-promote { border-color:var(--green); background:var(--green-bg); color:var(--green); }
+  .afc-pbn.pb-rollback{ border-color:var(--red); background:var(--red-bg); color:var(--red); }
+  .afc-parr.pa-done    { background:var(--accent); }  .afc-parr.pa-done::after    { border-left-color:var(--accent); }
+  .afc-parr.pa-promote { background:var(--green); }   .afc-parr.pa-promote::after { border-left-color:var(--green); }
+  .afc-parr.pa-rollback{ background:var(--red); }     .afc-parr.pa-rollback::after{ border-left-color:var(--red); }
+  @keyframes pbn-p { 0%,100%{box-shadow:0 0 0 3px rgba(29,95,214,.08)} 50%{box-shadow:0 0 0 6px rgba(29,95,214,.16),0 0 14px rgba(29,95,214,.08)} }
+
+  /* gate label */
+  .afc-glabel { font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); border-bottom:1px solid var(--border); padding-bottom:10px; margin-bottom:18px; }
+
+  /* flowchart grid */
+  .afc-fc { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.6fr); gap:8px 16px; align-items:center; }
+  .afc-full { grid-column:1/-1; display:flex; justify-content:center; }
+  .afc-lb { display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
+  .afc-rp { display:flex; flex-direction:column; align-items:flex-start; gap:4px; }
+  .afc-blbl { display:inline-block; font-size:.63rem; font-weight:800; letter-spacing:.04em; text-transform:uppercase; padding:2px 8px; border-radius:4px; }
+  .afc-blbl.bno     { color:var(--red);   background:rgba(211,48,69,.08); }
+  .afc-blbl.byes    { color:var(--green); background:rgba(26,154,86,.08); }
+  .afc-blbl.bforced { color:var(--amber); background:rgba(180,112,10,.08); }
+
+  /* connectors */
+  .afc-vc { width:24px; display:flex; flex-direction:column; align-items:center; flex-shrink:0; }
+  .afc-vcl { width:2px; height:20px; background:var(--border); border-radius:1px; position:relative; overflow:hidden; }
+  .afc-vcl::after { content:''; position:absolute; top:0; left:0; width:100%; height:0; background:var(--accent); transition:height .35s ease; }
+  .afc-vca { width:0; height:0; border-left:5px solid transparent; border-right:5px solid transparent; border-top:7px solid var(--border); transition:border-top-color .35s ease; }
+  .afc-vc.vc-active .afc-vcl::after, .afc-vc.vc-done .afc-vcl::after { height:100%; }
+  .afc-vc.vc-active .afc-vca,        .afc-vc.vc-done .afc-vca        { border-top-color:var(--accent); }
+  .afc-vc.vc-promote  .afc-vcl::after { background:var(--green); } .afc-vc.vc-promote  .afc-vca { border-top-color:var(--green); }
+  .afc-vc.vc-rollback .afc-vcl::after { background:var(--red);   } .afc-vc.vc-rollback .afc-vca { border-top-color:var(--red); }
+
+  /* nodes */
+  .afc-node { width:100%; max-width:400px; background:var(--bg); border:1.5px solid var(--border); border-radius:10px; padding:11px 16px; text-align:center; font-size:.86rem; font-weight:700; color:var(--muted); transition:all .4s ease; box-shadow:0 1px 2px rgba(20,30,50,.04); }
+  .afc-node .ns { font-size:.72rem; font-weight:400; color:var(--muted); opacity:.7; margin-top:4px; transition:opacity .4s; }
+  .afc-node.nd { border-color:rgba(180,112,10,.4); background:rgba(180,112,10,.04); color:var(--amber); }
+  .afc-node.nr { border-color:rgba(211,48,69,.35);  background:var(--red-bg);  color:var(--red); }
+  .afc-node.nf { border-color:rgba(180,112,10,.4);  background:rgba(180,112,10,.05); color:var(--amber); }
+  .afc-node.np { border-color:rgba(26,154,86,.4);   background:var(--green-bg); color:var(--green); }
+  .afc-node.n-active { color:var(--accent)!important; border-color:var(--accent)!important; background:rgba(29,95,214,.06)!important; animation:nn-p 1.2s ease infinite; }
+  .afc-node.nd.n-active { color:var(--amber)!important; border-color:var(--amber)!important; background:rgba(180,112,10,.08)!important; animation:nd-p 1.2s ease infinite; }
+  .afc-node.nr.n-active { color:var(--red)!important;   border-color:var(--red)!important;   background:var(--red-bg)!important;        animation:nr-p 1.2s ease infinite; }
+  .afc-node.nf.n-active { color:var(--amber)!important; border-color:var(--amber)!important; background:rgba(180,112,10,.08)!important; animation:nf-p 1.2s ease infinite; }
+  .afc-node.np.n-active { color:var(--green)!important; border-color:var(--green)!important; background:var(--green-bg)!important;       animation:np-p 1.4s ease infinite; }
+  .afc-node.n-active .ns { opacity:1!important; }
+  .afc-node.n-done { border-color:rgba(29,95,214,.25)!important; background:rgba(29,95,214,.04)!important; color:var(--accent)!important; }
+  .afc-node.n-done .ns { opacity:.6!important; }
+  .afc-node.n-skip { opacity:.15!important; }
+  @keyframes nn-p { 0%,100%{box-shadow:0 0 0 2px rgba(29,95,214,.08)}  50%{box-shadow:0 0 0 5px rgba(29,95,214,.16),0 0 14px rgba(29,95,214,.08)} }
+  @keyframes nd-p { 0%,100%{box-shadow:0 0 0 2px rgba(180,112,10,.1)}  50%{box-shadow:0 0 0 5px rgba(180,112,10,.2),0 0 12px rgba(180,112,10,.1)} }
+  @keyframes nr-p { 0%,100%{box-shadow:0 0 0 2px rgba(211,48,69,.1)}   50%{box-shadow:0 0 0 5px rgba(211,48,69,.2),0 0 14px rgba(211,48,69,.1)} }
+  @keyframes nf-p { 0%,100%{box-shadow:0 0 0 2px rgba(180,112,10,.1)}  50%{box-shadow:0 0 0 5px rgba(180,112,10,.2),0 0 12px rgba(180,112,10,.1)} }
+  @keyframes np-p { 0%,100%{box-shadow:0 0 6px rgba(26,154,86,.15)}    50%{box-shadow:0 0 18px rgba(26,154,86,.35),0 0 36px rgba(26,154,86,.12)} }
+
+  /* collector boxes */
+  .afc-colls { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-top:10px; }
+  @media(max-width:580px){ .afc-colls{ grid-template-columns:1fr 1fr; } }
+  .afc-coll { border:1px solid var(--border); background:var(--panel-light); border-radius:6px; padding:7px 5px; text-align:center; font-size:.7rem; font-weight:700; color:var(--muted); transition:all .35s; }
+  .afc-coll small { display:block; font-weight:400; margin-top:2px; color:var(--muted); opacity:.6; transition:opacity .35s; line-height:1.3; }
+  .afc-coll.c-active { border-color:var(--accent); color:var(--accent); background:rgba(29,95,214,.06); animation:coll-p 1s ease infinite; }
+  .afc-coll.c-active small { opacity:1; }
+  .afc-coll.c-done   { border-color:rgba(29,95,214,.25); color:var(--accent); background:rgba(29,95,214,.04); }
+  @keyframes coll-p { 0%,100%{} 50%{box-shadow:0 0 6px rgba(29,95,214,.15)} }
+
+  /* status ticker */
+  .afc-ticker { display:flex; align-items:center; gap:10px; margin-top:20px; padding:10px 16px; background:var(--panel-light); border:1px solid var(--border); border-radius:8px; font-family:"SF Mono",Consolas,Menlo,monospace; font-size:.78rem; color:var(--muted); min-height:42px; transition:all .35s; }
+  .afc-ticker-dot { width:7px; height:7px; border-radius:50%; background:var(--border); flex-shrink:0; transition:background .35s; }
+  .afc-ticker.t-running .afc-ticker-dot { background:var(--accent); animation:dot-p 1s ease infinite; }
+  .afc-ticker.t-promote  { border-color:rgba(26,154,86,.4); color:var(--green); }
+  .afc-ticker.t-promote  .afc-ticker-dot { background:var(--green); animation:none; }
+  .afc-ticker.t-rollback { border-color:rgba(211,48,69,.4); color:var(--red); }
+  .afc-ticker.t-rollback .afc-ticker-dot { background:var(--red); animation:none; }
+  @keyframes dot-p { 0%,100%{opacity:1} 50%{opacity:.3} }
 </style>
 </head>
 <body>
@@ -360,6 +449,159 @@
     </div>
   </header>
 
+  <section id="section-pipeline">
+    <h2>How a new release flows through the gate</h2>
+    <p>From the moment code is pushed to when the pipeline acts &mdash; every step the Raptor Gate
+      takes, animated end to end. Toggle between a healthy canary and a degraded one to see
+      both outcomes.</p>
+
+    <div class="afc-wrap">
+
+      <div class="afc-controls">
+        <button class="afc-sbtn s-active" id="afc-btn-promote" onclick="afc.setScenario('promote')">&#9654;&nbsp; Healthy canary &mdash; PROMOTE</button>
+        <button class="afc-sbtn" id="afc-btn-rollback" onclick="afc.setScenario('rollback')">&#9654;&nbsp; Degraded canary &mdash; ROLLBACK</button>
+        <button class="afc-rbtn" onclick="afc.replay()">&#8635;&nbsp; Replay</button>
+      </div>
+
+      <div class="afc-pbar">
+        <div class="afc-pbn" id="pb0"><i>&#128187;</i>Code Push</div>
+        <div class="afc-parr" id="pa0"></div>
+        <div class="afc-pbn" id="pb1"><i>&#128296;</i>CI/CD Build</div>
+        <div class="afc-parr" id="pa1"></div>
+        <div class="afc-pbn" id="pb2"><i>&#128640;</i>Deploy Canary</div>
+        <div class="afc-parr" id="pa2"></div>
+        <div class="afc-pbn" id="pb3" style="border-color:#1f6feb44"><i>&#9889;</i>Raptor Gate</div>
+        <div class="afc-parr" id="pa3"></div>
+        <div class="afc-pbn" id="pb4"><i id="pb4i">&#127981;</i><span id="pb4t">Production</span></div>
+      </div>
+
+      <div class="afc-glabel">&#9889; Raptor Gate &mdash; detailed decision flow</div>
+
+      <div class="afc-fc">
+
+        <div class="afc-full">
+          <div class="afc-node" id="n-collect">
+            Collecting 9 live metrics
+            <div class="afc-colls">
+              <div class="afc-coll" id="c-prom">Prometheus<small>CPU &middot; Memory</small></div>
+              <div class="afc-coll" id="c-k8s">Kubernetes API<small>Pod restarts</small></div>
+              <div class="afc-coll" id="c-redis">Redis<small>Latency</small></div>
+              <div class="afc-coll" id="c-http">HTTP Probe<small>Latency &middot; p99 &middot; Errors<br/>Availability &middot; Packet loss</small></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="afc-full"><div class="afc-vc" id="vc1"><div class="afc-vcl"></div><div class="afc-vca"></div></div></div>
+
+        <div class="afc-lb">
+          <span class="afc-blbl bno">&larr; NO</span>
+          <div class="afc-node nf" id="n-failclosed">FAIL CLOSED<div class="ns">Uncertainty = ROLLBACK. Never guess on missing data.</div></div>
+        </div>
+        <div class="afc-rp">
+          <div class="afc-node nd" id="n-complete">All 9 metrics collected successfully?</div>
+        </div>
+
+        <div></div>
+        <div class="afc-rp">
+          <span class="afc-blbl byes">YES &darr;</span>
+          <div class="afc-vc" id="vc-y1"><div class="afc-vcl"></div><div class="afc-vca"></div></div>
+        </div>
+
+        <div></div>
+        <div class="afc-rp">
+          <div class="afc-node" id="n-scoring">
+            Isolation Forest &amp; SLA Engine
+            <div class="ns">Anomaly score (0&ndash;100) &middot; 9 threshold checks &middot; health = anomaly &minus; (20 &times; breaches)</div>
+          </div>
+        </div>
+
+        <div></div>
+        <div class="afc-rp"><div class="afc-vc" id="vc2"><div class="afc-vcl"></div><div class="afc-vca"></div></div></div>
+
+        <div></div>
+        <div class="afc-rp">
+          <div class="afc-node" id="n-health">
+            Health score computed
+            <div class="ns" id="n-health-sub">health = anomaly_score &minus; (20 &times; breaches)</div>
+          </div>
+        </div>
+
+        <div></div>
+        <div class="afc-rp"><div class="afc-vc" id="vc3"><div class="afc-vcl"></div><div class="afc-vca"></div></div></div>
+
+        <div class="afc-lb">
+          <span class="afc-blbl bno">&larr; NO</span>
+          <div class="afc-node nr" id="n-rollback">ROLLBACK &mdash; exit&nbsp;1<div class="ns">Score below threshold. Revert to last known-good version.</div></div>
+        </div>
+        <div class="afc-rp">
+          <div class="afc-node nd" id="n-threshold">Health score &ge; 70?</div>
+        </div>
+
+        <div></div>
+        <div class="afc-rp">
+          <span class="afc-blbl byes">YES &darr;</span>
+          <div class="afc-vc" id="vc-y2"><div class="afc-vcl"></div><div class="afc-vca"></div></div>
+        </div>
+
+        <div class="afc-lb">
+          <span class="afc-blbl bforced">&larr; YES</span>
+          <div class="afc-node nf" id="n-forced1">FORCED ROLLBACK<div class="ns">Same metric failed SLA on a recent prior deployment too.</div></div>
+        </div>
+        <div class="afc-rp">
+          <div class="afc-node nd" id="n-breach">Persistent breach? (same metric failed before?)</div>
+        </div>
+
+        <div></div>
+        <div class="afc-rp">
+          <span class="afc-blbl bno">NO &darr;</span>
+          <div class="afc-vc" id="vc-n2"><div class="afc-vcl"></div><div class="afc-vca"></div></div>
+        </div>
+
+        <div class="afc-lb">
+          <span class="afc-blbl bforced">&larr; YES</span>
+          <div class="afc-node nf" id="n-forced2">FORCED ROLLBACK<div class="ns">Metric spiked on &gt;50% of raw sub-window ticks.</div></div>
+        </div>
+        <div class="afc-rp">
+          <div class="afc-node nd" id="n-volatility">Within-window volatility? (&gt;50% of ticks over SLA?)</div>
+        </div>
+
+        <div></div>
+        <div class="afc-rp">
+          <span class="afc-blbl bno">NO &darr;</span>
+          <div class="afc-vc" id="vc-n3"><div class="afc-vcl"></div><div class="afc-vca"></div></div>
+        </div>
+
+        <div></div>
+        <div class="afc-rp">
+          <div class="afc-node np" id="n-promote">&#10003; PROMOTE &mdash; exit&nbsp;0<div class="ns">All signals green. Safe to advance to production.</div></div>
+        </div>
+
+        <div class="afc-full"><div class="afc-vc" id="vc4"><div class="afc-vcl"></div><div class="afc-vca"></div></div></div>
+        <div class="afc-full">
+          <div class="afc-node" id="n-pipeline">
+            CI/CD pipeline acts on the exit code
+            <div class="ns" id="n-pipeline-sub">exit&nbsp;0 &rarr; advance canary to 100% production traffic &nbsp;&bull;&nbsp; exit&nbsp;1 &rarr; revert to last known-good version</div>
+          </div>
+        </div>
+
+        <div class="afc-full"><div class="afc-vc" id="vc5"><div class="afc-vcl"></div><div class="afc-vca"></div></div></div>
+        <div class="afc-full">
+          <div class="afc-node" id="n-notify">
+            Optional: notify pipeline
+            <div class="ns">Webhook &middot; GitLab trigger &middot; Jenkins job parameters &mdash; runs regardless of decision, never changes it</div>
+          </div>
+        </div>
+
+      </div><!-- /afc-fc -->
+
+      <div class="afc-ticker" id="afc-ticker">
+        <div class="afc-ticker-dot"></div>
+        <span id="afc-ticker-msg">Animation will start automatically&hellip;</span>
+      </div>
+
+    </div><!-- /afc-wrap -->
+  </section>
+
   <section>
     <h2>What this is</h2>
     <p>Instead of a human watching dashboards and judging whether a new version
@@ -377,77 +619,6 @@
         <div class="flow-step"><div class="num">4</div>Check: has this same metric broken its SLA on a recent prior deployment too?</div>
         <div class="flow-arrow">&rarr;</div>
         <div class="flow-step"><div class="num">5</div>Final verdict: <strong>PROMOTE</strong> or <strong>ROLLBACK</strong></div>
-      </div>
-    </div>
-  </section>
-
-  <section>
-    <h2>How it works, end to end</h2>
-    <p>Every deployment triggers the same fixed pipeline, start to finish:</p>
-    <div class="panel">
-      <div class="fc">
-        <div class="fc-node start">CI/CD pipeline deploys a new canary version</div>
-        <div class="fc-arrow">&darr;</div>
-        <div class="fc-node">Raptor Gate triggered</div>
-        <div class="fc-arrow">&darr;</div>
-
-        <div class="fc-collect">
-          <div class="fc-node">Prometheus<div class="fc-sub">CPU, Memory</div></div>
-          <div class="fc-node">Kubernetes API<div class="fc-sub">Pod restarts</div></div>
-          <div class="fc-node">Redis<div class="fc-sub">Redis latency</div></div>
-          <div class="fc-node">Live HTTP probe<div class="fc-sub">Latency, p99, errors,<br/>availability, packet loss</div></div>
-        </div>
-
-        <div class="fc-arrow">&darr;</div>
-        <div class="fc-node decision">All 9 metrics collected successfully?</div>
-
-        <div class="fc-branch">
-          <div class="fc-branch-col">
-            <div class="fc-arrow"><span class="label no">no</span><br/>&darr;</div>
-            <div class="fc-node failclosed">FAIL CLOSED &mdash; never guess</div>
-          </div>
-          <div class="fc-branch-col">
-            <div class="fc-arrow"><span class="label yes">yes</span><br/>&darr;</div>
-            <div class="fc-node">Isolation Forest anomaly scoring<br/>+ SLA rule engine (9 thresholds)</div>
-          </div>
-        </div>
-
-        <div class="fc-branch">
-          <div class="fc-branch-col"></div>
-          <div class="fc-branch-col">
-            <div class="fc-arrow">&darr;</div>
-            <div class="fc-node">Combined into Health Score (0&ndash;100)</div>
-            <div class="fc-arrow">&darr;</div>
-            <div class="fc-node decision">Health score &ge; 70?</div>
-          </div>
-        </div>
-
-        <div class="fc-branch">
-          <div class="fc-branch-col">
-            <div class="fc-arrow"><span class="label no">no</span><br/>&darr;</div>
-            <div class="fc-node rollback">ROLLBACK &mdash; exit code 1</div>
-          </div>
-          <div class="fc-branch-col">
-            <div class="fc-arrow"><span class="label yes">yes</span><br/>&darr;</div>
-            <div class="fc-node decision">Did this SAME metric also breach on a recent prior deployment?</div>
-          </div>
-        </div>
-
-        <div class="fc-outcomes">
-          <div class="fc-outcome-col">
-            <div class="fc-arrow"><span class="label yes">yes, 2nd+ time</span><br/>&darr;</div>
-            <div class="fc-node failclosed">FORCED ROLLBACK<div class="fc-sub">persistent breach pattern</div></div>
-          </div>
-          <div class="fc-outcome-col">
-            <div class="fc-arrow"><span class="label no">no</span><br/>&darr;</div>
-            <div class="fc-node promote">PROMOTE &mdash; exit code 0</div>
-          </div>
-        </div>
-
-        <div class="fc-arrow">&darr;</div>
-        <div class="fc-node">Optional: notify pipeline (GitLab / Jenkins / Webhook)</div>
-        <div class="fc-arrow">&darr;</div>
-        <div class="fc-node">Pipeline automatically reverts <strong>or</strong> advances the canary to full production</div>
       </div>
     </div>
   </section>
@@ -622,5 +793,173 @@
   </footer>
 
 </div>
+<script>
+(function () {
+  class RaptorAFC {
+    constructor() {
+      this.scenario = 'promote';
+      this.timers = [];
+      setTimeout(() => this.replay(), 900);
+    }
+    el(id) { return document.getElementById(id); }
+    setScenario(s) {
+      this.scenario = s;
+      this.el('afc-btn-promote').classList.toggle('s-active', s === 'promote');
+      this.el('afc-btn-rollback').classList.toggle('s-active', s === 'rollback');
+      this.replay();
+    }
+    replay() {
+      this.timers.forEach(t => clearTimeout(t));
+      this.timers = [];
+      this.resetAll();
+      const seq = this.scenario === 'promote' ? this.promoteSeq() : this.rollbackSeq();
+      let t = 400;
+      seq.forEach(step => {
+        this.timers.push(setTimeout(() => this.applyStep(step), t));
+        t += (step.dur || 500);
+      });
+    }
+    resetAll() {
+      ['n-collect','n-complete','n-failclosed','n-scoring','n-health','n-threshold',
+       'n-rollback','n-breach','n-forced1','n-volatility','n-forced2','n-promote',
+       'n-pipeline','n-notify'].forEach(id => {
+        const e = this.el(id); if (e) e.classList.remove('n-active','n-done','n-skip');
+      });
+      ['vc1','vc-y1','vc2','vc3','vc-y2','vc-n2','vc-n3','vc4','vc5'].forEach(id => {
+        const e = this.el(id); if (e) e.classList.remove('vc-active','vc-done','vc-promote','vc-rollback');
+      });
+      ['c-prom','c-k8s','c-redis','c-http'].forEach(id => {
+        const e = this.el(id); if (e) e.classList.remove('c-active','c-done');
+      });
+      ['pb0','pb1','pb2','pb3','pb4'].forEach(id => {
+        const e = this.el(id); if (e) e.classList.remove('pb-active','pb-done','pb-promote','pb-rollback');
+      });
+      ['pa0','pa1','pa2','pa3'].forEach(id => {
+        const e = this.el(id); if (e) e.classList.remove('pa-done','pa-promote','pa-rollback');
+      });
+      const hs = this.el('n-health-sub');
+      if (hs) hs.innerHTML = 'health = anomaly_score &minus; (20 &times; breaches)';
+      const ps = this.el('n-pipeline-sub');
+      if (ps) ps.innerHTML = 'exit&nbsp;0 &rarr; advance canary to 100% production traffic &nbsp;&bull;&nbsp; exit&nbsp;1 &rarr; revert to last known-good version';
+      const pi = this.el('pb4i'); if (pi) pi.textContent = '\u{1F3ED}';
+      const pt = this.el('pb4t'); if (pt) pt.textContent = 'Production';
+      const tk = this.el('afc-ticker'); if (tk) tk.className = 'afc-ticker t-running';
+      const tm = this.el('afc-ticker-msg'); if (tm) tm.textContent = 'Starting\u2026';
+    }
+    applyStep(s) {
+      const { activate=[], done=[], skip=[], conn=[], collActivate=[], collDone=[],
+              pb=[], pa=[], tick, tickClass, subLabel={}, pb4 } = s;
+      activate.forEach(id => { const e=this.el(id); if(e){ e.classList.remove('n-done','n-skip'); e.classList.add('n-active'); }});
+      done.forEach(id    => { const e=this.el(id); if(e){ e.classList.remove('n-active','n-skip'); e.classList.add('n-done'); }});
+      skip.forEach(id    => { const e=this.el(id); if(e){ e.classList.remove('n-active','n-done'); e.classList.add('n-skip'); }});
+      collActivate.forEach(id => { const e=this.el(id); if(e){ e.classList.remove('c-done'); e.classList.add('c-active'); }});
+      collDone.forEach(id     => { const e=this.el(id); if(e){ e.classList.remove('c-active'); e.classList.add('c-done'); }});
+      conn.forEach(({ id, type }) => {
+        const e = this.el(id); if (!e) return;
+        e.classList.add('vc-active');
+        if (type) e.classList.add('vc-' + type);
+        setTimeout(() => { e.classList.remove('vc-active'); e.classList.add('vc-done'); }, 380);
+      });
+      pb.forEach(({ id, state }) => {
+        const e = this.el(id); if (!e) return;
+        e.classList.remove('pb-active','pb-done','pb-promote','pb-rollback');
+        e.classList.add('pb-' + state);
+      });
+      pa.forEach(({ id, state }) => {
+        const e = this.el(id); if (!e) return;
+        e.classList.remove('pa-done','pa-promote','pa-rollback');
+        e.classList.add('pa-' + state);
+      });
+      if (tick !== undefined) {
+        const tm = this.el('afc-ticker-msg'); if (tm) tm.textContent = tick;
+        const tk = this.el('afc-ticker'); if (tk) tk.className = 'afc-ticker ' + (tickClass || 't-running');
+      }
+      Object.entries(subLabel).forEach(([id, html]) => { const e=this.el(id); if(e) e.innerHTML=html; });
+      if (pb4) {
+        const i=this.el('pb4i'); if(i&&pb4.icon)  i.textContent=pb4.icon;
+        const t=this.el('pb4t'); if(t&&pb4.label) t.textContent=pb4.label;
+      }
+    }
+    promoteSeq() {
+      return [
+        { pb:[{id:'pb0',state:'active'}], tick:'Developer pushes new version. CI/CD triggered.', dur:620 },
+        { pb:[{id:'pb0',state:'done'},{id:'pb1',state:'active'}], pa:[{id:'pa0',state:'done'}], tick:'Building artifact, running unit tests\u2026', dur:620 },
+        { pb:[{id:'pb1',state:'done'},{id:'pb2',state:'active'}], pa:[{id:'pa1',state:'done'}], tick:'Deploying canary pods to Kubernetes staging environment.', dur:700 },
+        { pb:[{id:'pb2',state:'done'},{id:'pb3',state:'active'}], pa:[{id:'pa2',state:'done'}], tick:'Canary is up. Raptor Gate activated.', dur:520 },
+        { activate:['n-collect'], collActivate:['c-prom'], tick:'Querying Prometheus \u2014 cpu_usage, memory_usage\u2026', dur:320 },
+        { collActivate:['c-k8s'],   tick:'Kubernetes API \u2014 pod_restarts\u2026',          dur:280 },
+        { collActivate:['c-redis'], tick:'Redis PING timing \u2014 redis_latency\u2026',       dur:280 },
+        { collActivate:['c-http'],  tick:'HTTP probe \u2014 latency, p99, error_rate, availability, packet_loss\u2026', dur:480 },
+        { done:['n-collect'], collDone:['c-prom','c-k8s','c-redis','c-http'], tick:'All 9 metrics received successfully.', dur:420 },
+        { conn:[{id:'vc1'}], dur:400 },
+        { activate:['n-complete'], tick:'Checking: are all 9 metric slots populated?', dur:520 },
+        { done:['n-complete'], skip:['n-failclosed'], tick:'Complete sample confirmed \u2014 no missing metrics.', dur:380 },
+        { conn:[{id:'vc-y1'}], dur:400 },
+        { activate:['n-scoring'], tick:'Running Isolation Forest decision_function()\u2026 evaluating 9 SLA rules\u2026', dur:940 },
+        { done:['n-scoring'], tick:'anomaly_score = 78.1 / 100  \u00b7  breaches = 0 of 9 rules.', dur:400 },
+        { conn:[{id:'vc2'}], dur:400 },
+        { activate:['n-health'], subLabel:{'n-health-sub':'health_score = 78.1 &minus; (20 &times; 0) = <strong style="color:#3fb950">78.1</strong>'}, tick:'Computing health score\u2026', dur:640 },
+        { done:['n-health'], tick:'Health score: 78.1 / 100', dur:380 },
+        { conn:[{id:'vc3'}], dur:400 },
+        { activate:['n-threshold'], tick:'Gate threshold check: is 78.1 \u2265 70?', dur:520 },
+        { done:['n-threshold'], skip:['n-rollback'], tick:'78.1 \u2265 70 \u2713  Score passes the gate threshold.', dur:380 },
+        { conn:[{id:'vc-y2'}], dur:400 },
+        { activate:['n-breach'], tick:'Checking persistent breach history for this component\u2026', dur:700 },
+        { done:['n-breach'], skip:['n-forced1'], tick:'No persistent breaches on record. Continuing.', dur:380 },
+        { conn:[{id:'vc-n2'}], dur:400 },
+        { activate:['n-volatility'], tick:'Checking raw sub-window tick data for within-window spikes\u2026', dur:700 },
+        { done:['n-volatility'], skip:['n-forced2'], tick:'No within-window volatility detected. All ticks within SLA bounds.', dur:380 },
+        { conn:[{id:'vc-n3'}], dur:400 },
+        { activate:['n-promote'], tick:'All four signals passed. Decision: PROMOTE \u2014 exit code 0.', tickClass:'t-promote',
+          pb:[{id:'pb3',state:'done'}], pa:[{id:'pa3',state:'promote'}], pb4:{icon:'\u2705',label:'Production'}, dur:920 },
+        { conn:[{id:'vc4',type:'promote'}], dur:400 },
+        { activate:['n-pipeline'], subLabel:{'n-pipeline-sub':'exit&nbsp;0 &rarr; CI/CD advances canary to 100% production traffic'},
+          tick:'CI/CD received exit 0 \u2014 advancing canary to full production.', tickClass:'t-promote',
+          pb:[{id:'pb4',state:'promote'}], dur:740 },
+        { conn:[{id:'vc5',type:'promote'}], dur:400 },
+        { activate:['n-notify'], tick:'Sending promotion notification to configured endpoints.', tickClass:'t-promote', dur:600 },
+        { done:['n-notify','n-pipeline','n-promote'], tick:'\u2713  Deployment complete. New version is live in production.', tickClass:'t-promote', dur:99999 },
+      ];
+    }
+    rollbackSeq() {
+      return [
+        { pb:[{id:'pb0',state:'active'}], tick:'Developer pushes new version. CI/CD triggered.', dur:620 },
+        { pb:[{id:'pb0',state:'done'},{id:'pb1',state:'active'}], pa:[{id:'pa0',state:'done'}], tick:'Building artifact\u2026', dur:620 },
+        { pb:[{id:'pb1',state:'done'},{id:'pb2',state:'active'}], pa:[{id:'pa1',state:'done'}], tick:'Deploying degraded canary to Kubernetes staging.', dur:700 },
+        { pb:[{id:'pb2',state:'done'},{id:'pb3',state:'active'}], pa:[{id:'pa2',state:'done'}], tick:'Canary is up. Raptor Gate activated.', dur:520 },
+        { activate:['n-collect'], collActivate:['c-prom'], tick:'Prometheus \u2014 cpu_usage 78%, memory_usage 82% (both above limit)', dur:320 },
+        { collActivate:['c-k8s'],   tick:'Kubernetes API \u2014 pod_restarts: 4 (limit is 3)', dur:280 },
+        { collActivate:['c-redis'], tick:'Redis latency: 18ms (limit is 10ms)', dur:280 },
+        { collActivate:['c-http'],  tick:'HTTP probe \u2014 error_rate 2.8%, p99 380ms, availability 97.5% \u2014 all over limit', dur:480 },
+        { done:['n-collect'], collDone:['c-prom','c-k8s','c-redis','c-http'], tick:'All 9 metrics received. Most are in bad shape.', dur:420 },
+        { conn:[{id:'vc1'}], dur:400 },
+        { activate:['n-complete'], tick:'Checking: are all 9 metric slots populated?', dur:520 },
+        { done:['n-complete'], skip:['n-failclosed'], tick:'Complete sample confirmed \u2014 all 9 slots filled.', dur:380 },
+        { conn:[{id:'vc-y1'}], dur:400 },
+        { activate:['n-scoring'], tick:'Running Isolation Forest\u2026 evaluating 9 SLA rules against degraded metrics\u2026', dur:940 },
+        { done:['n-scoring'], tick:'anomaly_score = 72.2 / 100  \u00b7  breaches = 8 of 9 rules.', dur:400 },
+        { conn:[{id:'vc2'}], dur:400 },
+        { activate:['n-health'], subLabel:{'n-health-sub':'health_score = max(0, 72.2 &minus; (20 &times; 8)) = <strong style="color:#f85149">0.0</strong>'}, tick:'Computing health score\u2026', dur:640 },
+        { done:['n-health'], tick:'Health score: 0.0 / 100 \u2014 floored at zero.', dur:380 },
+        { conn:[{id:'vc3'}], dur:400 },
+        { activate:['n-threshold'], tick:'Gate threshold check: is 0.0 \u2265 70?', dur:520 },
+        { done:['n-threshold'], activate:['n-rollback'],
+          skip:['n-breach','n-forced1','n-volatility','n-forced2','n-promote'],
+          tick:'0.0 < 70 \u2717  Score fails the gate threshold. Decision: ROLLBACK \u2014 exit code 1.',
+          tickClass:'t-rollback', pb:[{id:'pb3',state:'done'}], pa:[{id:'pa3',state:'rollback'}],
+          pb4:{icon:'\u23ea',label:'Rollback'}, dur:920 },
+        { conn:[{id:'vc4'}], dur:400 },
+        { activate:['n-pipeline'], subLabel:{'n-pipeline-sub':'exit&nbsp;1 &rarr; CI/CD reverts canary to the last known-good version'},
+          tick:'CI/CD received exit 1 \u2014 reverting. Stable version being restored.', tickClass:'t-rollback',
+          pb:[{id:'pb4',state:'rollback'}], dur:740 },
+        { conn:[{id:'vc5'}], dur:400 },
+        { activate:['n-notify'], tick:'Sending rollback alert to configured endpoints.', tickClass:'t-rollback', dur:600 },
+        { done:['n-notify','n-pipeline','n-rollback'], tick:'\u2717  Deployment rolled back. Last known-good version is live in production.', tickClass:'t-rollback', dur:99999 },
+      ];
+    }
+  }
+  window.afc = new RaptorAFC();
+})();
+</script>
 </body>
 </html>

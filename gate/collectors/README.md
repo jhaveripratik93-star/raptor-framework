@@ -71,6 +71,12 @@ live. Exit code: 0 = PROMOTE, 1 = ROLLBACK.
 - `influxdb.measurements` — the measurement/field names in your bucket
 - `network_probe.target_host` / `target_port`
 
+To speed this up, `scripts/discover_collectors.py` lists Deployments in a
+namespace and drafts most of this automatically (pod selector, Service
+DNS/ports, which HTTP port actually responds) — it leaves only the PromQL
+metric queries as an explicit `TODO`, since guessing those wrong means the
+gate silently scores the wrong metric. See `scripts/README.md` for usage.
+
 ## Tests
 
 All collectors are covered by `tests/test_collectors.py` with mocked clients

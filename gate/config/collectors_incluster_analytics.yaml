@@ -2,7 +2,7 @@
 #
 # TARGET WORKLOAD: eric-cenx-analytics (robot-poc).
 #
-# See collectors_incluster.yaml for the full explanation of why this uses
+# See collectors_incluster_rest-api.yaml for the full explanation of why this uses
 # in-cluster Service DNS + in_cluster: true instead of localhost / a
 # kubeconfig file.
 #
