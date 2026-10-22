@@ -6,6 +6,8 @@ the parsing, aggregation, and fail-closed behaviour can be verified offline.
 
 from __future__ import annotations
 
+import threading
+
 import pytest
 
 from gate.collectors.base import CollectorError
@@ -259,15 +261,23 @@ class _ProbeResp:
 
 
 class _ProbeSession:
-    """Yields a scripted sequence of responses / connection errors."""
+    """Yields a scripted sequence of responses / connection errors.
+
+    Thread-safe: HttpProbeCollector now fires its probes concurrently (a
+    thread pool), so this stub's shared `_i` counter needs a lock -- without
+    it, concurrent callers could race on the read-increment of `_i` and
+    either skip or repeat script entries, making tests flaky.
+    """
     def __init__(self, script):
         # script: list of either int status codes, or the string "fail".
         self._script = list(script)
         self._i = 0
+        self._lock = threading.Lock()
 
     def get(self, url, timeout=None):
-        item = self._script[self._i % len(self._script)]
-        self._i += 1
+        with self._lock:
+            item = self._script[self._i % len(self._script)]
+            self._i += 1
         if item == "fail":
             import requests
             raise requests.ConnectionError("refused")
@@ -312,6 +322,52 @@ def test_http_probe_from_config():
     assert c.base_url == "http://svc:8080"
     assert c.path == "/health"
     assert c.probe_count == 5
+    # concurrency defaults to probe_count (all probes fire at once) when not
+    # explicitly configured.
+    assert c.concurrency == 5
+
+
+def test_http_probe_concurrency_configurable():
+    cfg = {"base_url": "http://svc:8080", "probe_count": 20, "concurrency": 4}
+    c = HttpProbeCollector.from_config(cfg)
+    assert c.concurrency == 4
+
+
+def test_http_probe_runs_concurrently_not_serially():
+    """Probes should genuinely overlap in time, not run one after another --
+    this is the whole point of the change: a serial probe never experiences
+    the queuing delay a real concurrent caller would feel under load."""
+    import time as _time
+
+    class _SlowConcurrentSession:
+        """Each call blocks for a fixed delay; records concurrent in-flight
+        count so the test can assert overlap actually happened."""
+        def __init__(self, delay: float):
+            self.delay = delay
+            self.in_flight = 0
+            self.max_in_flight = 0
+            self._lock = threading.Lock()
+
+        def get(self, url, timeout=None):
+            with self._lock:
+                self.in_flight += 1
+                self.max_in_flight = max(self.max_in_flight, self.in_flight)
+            _time.sleep(self.delay)
+            with self._lock:
+                self.in_flight -= 1
+            return _ProbeResp(200)
+
+    session = _SlowConcurrentSession(delay=0.1)
+    c = HttpProbeCollector("http://svc:8080", probe_count=10, concurrency=10,
+                           session=session)
+    start = _time.perf_counter()
+    c.collect()
+    elapsed = _time.perf_counter() - start
+
+    # If this were serial, 10 probes * 0.1s = ~1.0s minimum. Running
+    # concurrently, it should take roughly one delay period, not ten.
+    assert elapsed < 0.5, f"probes took {elapsed:.2f}s -- looks serial, not concurrent"
+    assert session.max_in_flight > 1, "no overlap observed -- probes never ran concurrently"
 
 
 # --------------------------------------- aggregator built from real-ish config

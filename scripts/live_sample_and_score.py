@@ -63,6 +63,10 @@ def main(argv: list[str] | None = None) -> int:
                          help="CSV file to write results to. Defaults to "
                               "data/live_results_<app>_<timestamp>.csv so each run "
                               "produces a new file instead of overwriting.")
+    parser.add_argument("--no-plot", action="store_true",
+                         help="Skip rendering the dashboard PNG after the run "
+                              "(by default a PNG is written next to the CSV via "
+                              "scripts/plot_dashboard.py).")
     args = parser.parse_args(argv)
 
     # Load the collectors YAML early so we know the app name before building
@@ -152,6 +156,22 @@ def main(argv: list[str] | None = None) -> int:
         print(f"    GATE DECISION: {verdict.decision}  "
               f"({'exit 0, pipeline would PROMOTE' if verdict.promote else 'exit 1, pipeline would ROLLBACK'})")
 
+        # Naive comparison: what a dashboard that ONLY checks this one
+        # sample's own SLA thresholds would show -- no Isolation Forest, no
+        # cross-sample persistent-breach memory (trend.py), no within-window
+        # volatility check (volatility.py). Derived straight from the same
+        # verdict.violations the real gate already computed -- no extra
+        # scoring pass needed, since the SLA engine always runs first inside
+        # HealthScorer.score() regardless of which signals fire afterwards.
+        naive_decision = "PROMOTE" if not verdict.violations else "ROLLBACK"
+        if naive_decision != verdict.decision:
+            reason = (", ".join(p.detail for p in verdict.persistent_breaches)
+                       if verdict.persistent_breaches else
+                       "Isolation Forest anomaly score dropped health below the gate threshold")
+            print(f"    >>> DIVERGENCE: naive SLA-only monitoring would say {naive_decision}, "
+                  f"the gate says {verdict.decision} <<<")
+            print(f"        Why: {reason}")
+
         verdicts.append(verdict)
         records.append((sample_timestamp, dict(result.sample)))
 
@@ -176,11 +196,17 @@ def main(argv: list[str] | None = None) -> int:
     # decision with no evidence behind it.
     csv_fields = (["sample", "timestamp"] + list(METRIC_NAMES) +
                   ["decision", "health_score", "anomaly_score", "is_anomaly",
-                   "violations", "violated_metrics", "promote"])
+                   "violations", "violated_metrics", "promote",
+                   "naive_decision", "divergence", "forced_rollback",
+                   "persistent_breach_metrics"])
     with output_path.open("w", newline="") as fh:
         writer = csv.DictWriter(fh, fieldnames=csv_fields)
         writer.writeheader()
+        n_divergence = 0
         for i, (v, (ts, sample)) in enumerate(zip(verdicts, records), start=1):
+            naive_decision = "PROMOTE" if not v.violations else "ROLLBACK"
+            divergence = naive_decision != v.decision
+            n_divergence += divergence
             row = {
                 "sample": i,
                 "timestamp": ts,
@@ -191,12 +217,30 @@ def main(argv: list[str] | None = None) -> int:
                 "violations": len(v.violations),
                 "violated_metrics": ";".join(viol.metric for viol in v.violations),
                 "promote": v.promote,
+                "naive_decision": naive_decision,
+                "divergence": divergence,
+                "forced_rollback": v.forced_rollback,
+                "persistent_breach_metrics": ";".join(
+                    p.metric for p in v.persistent_breaches
+                ),
             }
             for metric in METRIC_NAMES:
                 row[metric] = sample.get(metric, "")
             writer.writerow(row)
     print()
     print(f"  Results saved to: {output_path}")
+    print(f"  Naive-vs-gate divergence: {n_divergence} of {len(verdicts)} sample(s)")
+
+    if not args.no_plot:
+        try:
+            sys.path.insert(0, str(Path(__file__).resolve().parent))
+            import plot_dashboard  # scripts/plot_dashboard.py, same directory
+            png_path = plot_dashboard.render_dashboard(output_path)
+            print(f"  Dashboard image saved to: {png_path}")
+        except Exception as exc:  # never let plotting failure affect the gate's exit code
+            print(f"  WARNING: could not render dashboard PNG ({exc}). "
+                  f"Re-run with: python scripts/plot_dashboard.py --csv {output_path}",
+                  file=sys.stderr)
 
     last = verdicts[-1]
     print()
