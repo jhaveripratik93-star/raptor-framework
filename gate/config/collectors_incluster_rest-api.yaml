@@ -58,10 +58,17 @@ redis:
   latency_samples: 5
 
 http_probe:
-  # Confirmed working: eric-cenx-rest-api answers on 8080 (returns HTTP 404 on
-  # "/", which still counts as a successful probe — the http_probe collector
-  # only treats transport-level connection failures as fatal, not 4xx/5xx).
+  # IMPORTANT: this service sits behind an nginx ingress with
+  # `rewrite-target: /cenx$1$2` -- its real application routes live under
+  # /cenx/, not at the bare root. "/" returns a 404 in ~5ms (the router
+  # rejecting an unknown path before any real handler runs), which made
+  # this collector always report near-zero endpoint_latency/p99_latency
+  # regardless of real load on the service -- confirmed by testing:
+  # /cenx/ measured 787-950ms average latency under concurrent load
+  # (scripts/generate_load.py) while "/" stayed under 10ms the whole time.
+  # Probing "/cenx/" (confirmed: returns a real HTTP 200 with actual
+  # response content) is what actually reflects the service's real latency.
   base_url: "http://eric-cenx-rest-api.robot-poc.svc.cluster.local:8080"
-  path: "/"
+  path: "/cenx/"
   probe_count: 10
   timeout_seconds: 5

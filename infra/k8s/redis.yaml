@@ -1,0 +1,121 @@
+# Plain Kubernetes manifest for the Raptor gate's Redis instance.
+# Namespace: robot-poc  |  StorageClass: network-block
+#
+# WHY THIS EXISTS INSTEAD OF THE BITNAMI HELM CHART
+#   infra/helm/redis-values.yaml (bitnami/redis) is what this was originally
+#   installed with. Since Broadcom's September 2025 restructuring of the
+#   Bitnami catalog, the free bitnami/redis chart's container images (and,
+#   depending on timing, the chart itself) resolve through
+#   oci://registry-1.docker.io/bitnamicharts/... which now requires a paid
+#   Bitnami Secure Images subscription -- `helm install` fails with:
+#     "failed to authorize: ... 401 Unauthorized"
+#   That's not a cluster/RBAC/network problem on our end; it's the public
+#   Bitnami catalog itself. Rather than depend on a channel that can change
+#   terms again, this is a small hand-written manifest using the OFFICIAL
+#   `redis` image on Docker Hub (actively maintained, no auth wall, pinned
+#   version below).
+#
+# This intentionally matches what the rest of the repo already expects, so
+# NOTHING else (gate/config/*.yaml, deploy/k8s/deployment.yaml,
+# scripts/*.ps1 and *.sh) needs to change:
+#   Secret   "redis"         key "redis-password"   (created separately --
+#                                                      see setup_raptor_environment.ps1,
+#                                                      never committed here)
+#   Service  "redis-master"  port 6379
+#   DNS      redis-master.robot-poc.svc.cluster.local:6379
+#
+# Apply order: create the "redis" Secret FIRST (kubectl create secret ...),
+# then `kubectl apply -f infra/k8s/redis.yaml`.
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-data
+  namespace: robot-poc
+  labels:
+    app: redis-master
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: network-block
+  resources:
+    requests:
+      storage: 8Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-master
+  namespace: robot-poc
+  labels:
+    app: redis-master
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate   # single ReadWriteOnce PVC -- avoid two pods mounting it at once
+  selector:
+    matchLabels:
+      app: redis-master
+  template:
+    metadata:
+      labels:
+        app: redis-master
+    spec:
+      containers:
+        - name: redis
+          image: redis:7.4-alpine
+          imagePullPolicy: IfNotPresent
+          # redis-server does not expand env vars in its own argv, so the
+          # password is passed via a wrapping shell that does the expansion.
+          command: ["sh", "-c"]
+          args:
+            - exec redis-server --requirepass "$REDIS_PASSWORD" --appendonly yes --dir /data
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis
+                  key: redis-password
+          ports:
+            - name: redis
+              containerPort: 6379
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "redis-cli -a \"$REDIS_PASSWORD\" ping | grep -q PONG"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "redis-cli -a \"$REDIS_PASSWORD\" ping | grep -q PONG"]
+            initialDelaySeconds: 15
+            periodSeconds: 20
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: redis-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-master
+  namespace: robot-poc
+  labels:
+    app: redis-master
+spec:
+  type: ClusterIP
+  selector:
+    app: redis-master
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: redis

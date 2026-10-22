@@ -342,7 +342,7 @@ class EWMABreachTracker:
                  min_history: int = 5,
                  fallback_min_breaches: int = 2,
                  window_size: int = 20,
-                 absolute_breach_ceiling: float = 0.5):
+                 absolute_breach_ceiling: float = 0.2):
         """
         alpha:                EWMA smoothing (0.1=slow/stable, 0.5=fast/reactive).
         sigma_threshold:      z-score above which a breach is flagged as anomalous.
@@ -351,8 +351,8 @@ class EWMABreachTracker:
         window_size:          rolling history length fed into EWMA.
         absolute_breach_ceiling: hard floor (fraction of the window) above
                              which a metric is ALWAYS flagged, regardless of
-                             what EWMA has learned. Default 0.5 means a
-                             metric breaching >= 50% of recent samples is
+                             what EWMA has learned. Default 0.2 means a
+                             metric breaching >= 20% of recent samples is
                              always treated as a persistent problem -- EWMA
                              adaptation can never suppress this. Only
                              evaluated once >= min_samples_for_ceiling
